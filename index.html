@@ -102,6 +102,8 @@ body.ar .round{font-family:var(--ar);font-size:16px}
 @media (pointer:coarse){#prompt{bottom:calc(120px + env(safe-area-inset-bottom,0px))}}
 
 /* dialogue */
+#netcount{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));inset-inline-start:14px;z-index:30;padding:7px 13px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer;background:#F4F7FC;color:#12153A;border:3px solid #12153A}
+#netcount[hidden]{display:none}
 #dlgcta{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
 #dlgcta[hidden]{display:none}
 .dcta{font:inherit;font-weight:800;font-size:15px;padding:11px 18px;border-radius:999px;border:3px solid #12153A;background:#F2C94C;color:#12153A;cursor:pointer;box-shadow:0 4px 0 #12153A;transition:transform .12s}
@@ -436,11 +438,13 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js?v=9"></script>
-<script src="site-data.js?v=9"></script>
-<script src="game.js?v=9"></script>
-<script src="exhibit.js?v=9"></script>
-<script src="space.js?v=9"></script>
-<script src="office.js?v=9"></script>
+<script src="content.js?v=10"></script>
+<script src="site-data.js?v=10"></script>
+<script src="game.js?v=10"></script>
+<script src="exhibit.js?v=10"></script>
+<script src="space.js?v=10"></script>
+<script src="office.js?v=10"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="net.js?v=10"></script>
 </body>
 </html>

@@ -581,12 +581,12 @@ function buildDistrictGates(){
 
 /* ---------- the Planet car and the rocket pad, parked by HQ ---------- */
 const markTex = new THREE.TextureLoader().load('img/mark.png');
-function makeCar(){
+function makeCar(col = 0x2E6BA9, stripeC = 0xF2C94C){
   const g = new THREE.Group(); g.userData.dyn = true;
-  const body = mesh(new THREE.BoxGeometry(1.5,0.55,2.6), 0x2E6BA9); body.position.y = 0.55; g.add(body);
+  const body = mesh(new THREE.BoxGeometry(1.5,0.55,2.6), col); body.position.y = 0.55; g.add(body);
   const cab = mesh(new THREE.BoxGeometry(1.3,0.55,1.4), 0xF4F7FC); cab.position.set(0,1.08,-0.15); g.add(cab);
   const glass = new THREE.Mesh(new THREE.BoxGeometry(1.32,0.36,1.0), basic(0x8FB4E3)); glass.position.set(0,1.12,-0.1); g.add(glass);
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.52,0.1,2.62), basic(0xF2C94C)); stripe.position.y = 0.72; g.add(stripe);
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.52,0.1,2.62), basic(stripeC)); stripe.position.y = 0.72; g.add(stripe);
   [[-0.72,0.5],[0.72,0.5],[-0.72,-0.85],[0.72,-0.85]].forEach(([x,z]) => { const w = mesh(new THREE.CylinderGeometry(0.32,0.32,0.26,14), 0x12153A, 0); w.rotation.z = Math.PI/2; w.position.set(x,0.32,z); w.userData.wheel = true; g.add(w); });
   [-0.77, 0.77].forEach(x => { const d = new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.4), new THREE.MeshBasicMaterial({ map: markTex, transparent: true })); d.position.set(x,0.55,0.1); d.rotation.y = x > 0 ? Math.PI/2 : -Math.PI/2; g.add(d); });
   [-0.45,0.45].forEach(x => { const l = new THREE.Mesh(new THREE.SphereGeometry(0.1,8,6), basic(0xFFF2B0)); l.position.set(x,0.6,1.3); g.add(l); });
@@ -605,25 +605,38 @@ function makeRocket(){
   const padM = mesh(new THREE.CylinderGeometry(2.2,2.4,0.3,20), 0x9EA4B8); padM.position.y = 0.15; padM.userData.pad = true; g.add(padM);
   return g;
 }
-let car = null, carTk = null, riding = false, rocket = null, rocketTk = null;
-function parkCar(d, fwd){
-  if (!car) car = makeCar();
-  car.parent && car.parent.remove(car); placeAt(car, d); faceToward(car, d.clone().addScaledVector(fwd, 0.1).normalize().multiplyScalar(R)); planet.add(car);
-  if (!carTk){ carTk = { d: d.clone(), r: 2.6, kind: 'car' }; talkables.push(carTk); } else carTk.d.copy(d);
+let car = null, riding = false, rocket = null, rocketTk = null;
+const cars = [];   // every parked Planet car: { car, tk }
+function parkCar(c, d, fwd){
+  c.parent && c.parent.remove(c); placeAt(c, d); faceToward(c, d.clone().addScaledVector(fwd, 0.1).normalize().multiplyScalar(R)); planet.add(c);
+  let rec = cars.find(x => x.car === c);
+  if (!rec){ rec = { car: c, tk: { d: d.clone(), r: 2.6, kind: 'car' } }; rec.tk.ref = rec; cars.push(rec); } else rec.tk.d.copy(d);
+  if (!talkables.includes(rec.tk)) talkables.push(rec.tk);
 }
+/* a parking spot beside the road next to a place on the planet */
+function carSpotNear(p, sideSign = 1){
+  const e = EDGES[ADJ[p.i][0]], nb = e[0] === p.i ? e[1] : e[0];
+  const tow = poiDirs[nb].clone().sub(p.dir); tow.addScaledVector(p.dir, -tow.dot(p.dir)).normalize();
+  const side = V().crossVectors(p.dir, tow).normalize().multiplyScalar(sideSign);
+  return [p.dir.clone().addScaledVector(tow.clone().multiplyScalar(0.35).add(side.clone().multiplyScalar(0.94)).normalize(), (p.r + 7.5)/R).normalize(), tow];
+}
+const CAR_COLORS = [[0x2E6BA9, 0xF2C94C], [0xE76F51, 0xF4F7FC], [0xF2C94C, 0x12153A], [0x3E8E7E, 0xF2C94C], [0x8E6BC2, 0xF4F7FC], [0xE9A0B8, 0x12153A], [0x12153A, 0xF2C94C]];
 function placeVehicles(){
   const hq = pois[0], e = EDGES[ADJ[0][0]], nb = e[0] === 0 ? e[1] : e[0];
   const tow = poiDirs[nb].clone().sub(hq.dir); tow.addScaledVector(hq.dir, -tow.dot(hq.dir)).normalize();
   const side = V().crossVectors(hq.dir, tow).normalize();
-  // car on the near side of the road, rocket pad on the far side of HQ
-  const cd = hq.dir.clone().addScaledVector(tow.clone().multiplyScalar(0.35).add(side.clone().multiplyScalar(0.94)).normalize(), (hq.r + 7.5)/R).normalize();
-  parkCar(cd, tow);
+  // the Planet car by HQ, the rocket pad on the far side
+  const [cd, ct] = carSpotNear(hq); parkCar(makeCar(...CAR_COLORS[0]), cd, ct);
   const rd = hq.dir.clone().addScaledVector(side.clone().negate().add(tow.clone().multiplyScalar(-0.3)).normalize(), (hq.r + 9)/R).normalize();
   rocket = makeRocket(); placeAt(rocket, rd); planet.add(rocket); addObstacle(rd, 2.2);
   rocketTk = { d: rd, r: 4.6, kind: 'rocket' }; talkables.push(rocketTk); rocket.userData.base = rocket.position.clone(); rocket.userData.dir = rd.clone();
+  // more cars around the planet: one in every client district, so there is always a ride nearby
+  const seen = new Set(); let k = 1;
+  for (const p of pois){ if (!p.district || seen.has(p.district)) continue; seen.add(p.district);
+    const [d, f] = carSpotNear(p, k % 2 ? -1 : 1); parkCar(makeCar(...CAR_COLORS[k % CAR_COLORS.length]), d, f); k++; }
 }
-function mountCar(){ riding = true; $('ride').innerHTML = '🚗 ' + (lang === 'ar' ? 'انزل' : 'Get out'); car.parent.remove(car); car.position.set(0,0,0); car.quaternion.identity(); player.add(car); rig.visible = false; camDist = Math.max(camDist, 8); Sfx.open(); mini(lang === 'ar' ? '🚗 اضغط E عشان تنزل' : '🚗 Press E to get out'); $('ride').hidden = false; }
-function dismount(){ riding = false; player.remove(car); parkCar(pDir.clone(), pFwd.clone()); rig.visible = true; Sfx.close(); $('ride').hidden = true;
+function mountCar(rec){ car = rec.car; talkables.splice(talkables.indexOf(rec.tk), 1); riding = true; $('ride').innerHTML = '🚗 ' + (lang === 'ar' ? 'انزل' : 'Get out'); car.parent.remove(car); car.position.set(0,0,0); car.quaternion.identity(); player.add(car); rig.visible = false; camDist = Math.max(camDist, 8); Sfx.open(); mini(lang === 'ar' ? '🚗 اضغط E عشان تنزل' : '🚗 Press E to get out'); $('ride').hidden = false; }
+function dismount(){ riding = false; player.remove(car); parkCar(car, pDir.clone(), pFwd.clone()); rig.visible = true; Sfx.close(); $('ride').hidden = true;
   // step out to the side of the car
   const side = V().crossVectors(pDir, pFwd).normalize(); pDir.addScaledVector(side, 2.2/R).normalize(); }
 $('ride').onclick = () => { if (riding && state === 'play') dismount(); };
@@ -1003,7 +1016,7 @@ function interact(tk){
   if (tk.kind === 'stone'){ const s = STONES[tk.ref][lang]; return talk(L(STONES[tk.ref].en[0], STONES[tk.ref].ar[0]), [L(STONES[tk.ref].en[1], STONES[tk.ref].ar[1])], true); }
   if (tk.kind === 'board') return openExhibit('client', tk.ref.logo || tk.ref.name.en);
   if (tk.kind === 'emp') return talkToCrew(tk.ref);
-  if (tk.kind === 'car') return mountCar();
+  if (tk.kind === 'car') return mountCar(tk.ref);
   if (tk.kind === 'rocket') return talk(L('Planet Rocket','صاروخ Planet'), [L("Fuelled and ready. Three worlds orbit Planet: the Moon where our crew lives, the Clients' Ring, and the Academy planet.", "الوقود مليان. فيه تلات عوالم حوالين Planet: القمر اللي ساكن فيه طاقمنا، وحلقة العملاء، وكوكب الأكاديمية.")], true, () => startLaunch());
   if (tk.kind === 'walker'){ tk.ref.pause = 6; const c = tk.ref.c; return talk(c ? c.name : L('Townsperson', 'واحد من سكان الكوكب'), [tk.ref.line], true, c ? () => openExhibit('client', c.logo) : null); }
   const p = tk.ref;
