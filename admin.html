@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>لوحة زوار Planet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f5f8; --surface:#fcfcfb; --line:#e3e5ea; --grid:#eceef2;
+  --text:#0b0b0b; --text2:#52514e; --muted:#8a8f99;
+  --s1:#2a78d6; --s2:#eb6834; --s1-soft:rgba(42,120,214,.12);
+  --good:#0f8a4a; --bad:#c43c3c; --navy:#12153A; --gold:#F2C94C;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111216; --surface:#1a1a19; --line:#2c2d33; --grid:#25262b;
+    --text:#f0efec; --text2:#c3c2b7; --muted:#8d8c86;
+    --s1:#3987e5; --s2:#d95926; --s1-soft:rgba(57,135,229,.18);
+    --good:#35b46f; --bad:#e66767;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111216; --surface:#1a1a19; --line:#2c2d33; --grid:#25262b;
+  --text:#f0efec; --text2:#c3c2b7; --muted:#8d8c86;
+  --s1:#3987e5; --s2:#d95926; --s1-soft:rgba(57,135,229,.18);
+  --good:#35b46f; --bad:#e66767;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Cairo,system-ui,sans-serif;font-size:14px}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1240px;margin:0 auto;padding:16px}
+header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+header.top h1{font-size:20px;margin:0;font-weight:800;display:flex;align-items:center;gap:8px}
+header.top h1 img{width:30px;height:30px}
+.grow{flex:1}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;cursor:pointer;font-weight:600;font-size:13px}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:700}
+.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.card h2{font-size:14px;margin:0 0 2px;font-weight:800}
+.card .sub{font-size:12px;color:var(--muted);margin:0 0 10px}
+.grid{display:grid;gap:12px;margin-bottom:12px}
+.g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g21{grid-template-columns:2fr 1fr}
+@media (max-width:1000px){.g6{grid-template-columns:repeat(3,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}.g21{grid-template-columns:1fr}}
+@media (max-width:640px){.g6,.g2,.g3{grid-template-columns:repeat(2,minmax(0,1fr))}.g2.stack,.g3.stack{grid-template-columns:1fr}.wrap{padding:12px}}
+.tile .lbl{font-size:12px;color:var(--text2);font-weight:600}
+.tile .val{font-size:26px;font-weight:800;line-height:1.2;margin-top:2px;font-variant-numeric:tabular-nums}
+.tile .delta{font-size:12px;font-weight:700;margin-top:2px}
+.up{color:var(--good)} .down{color:var(--bad)} .flat{color:var(--muted)}
+.tile.live .val{display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 rgba(15,138,74,.5);animation:pulse 1.6s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(15,138,74,0)}100%{box-shadow:0 0 0 0 rgba(15,138,74,0)}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+/* charts */
+.chart{position:relative}
+.chart svg{display:block;width:100%;overflow:visible;direction:ltr}
+.axis text{font-size:11px;fill:var(--muted);font-family:Cairo,sans-serif}
+.gridl{stroke:var(--grid);stroke-width:1}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--text2);margin-bottom:6px}
+.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;vertical-align:middle;margin-inline-end:5px}
+.tip{position:absolute;pointer-events:none;background:var(--navy);color:#fff;border-radius:8px;padding:6px 9px;font-size:12px;white-space:nowrap;z-index:5;transform:translate(-50%,-110%);opacity:0;transition:opacity .1s}
+.tip b{font-weight:800}
+/* bar lists */
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;font-size:13px;cursor:default}
+.bar .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.bar .nm small{color:var(--muted)}
+.bar .num{font-variant-numeric:tabular-nums;color:var(--text2);font-weight:700;font-size:12px}
+.bar .trk{grid-column:1 / -1;height:7px;background:var(--grid);border-radius:4px;overflow:hidden}
+.bar .fill{height:100%;background:var(--s1);border-radius:4px;min-width:3px}
+.bar:hover .fill{filter:brightness(1.12)}
+.empty{color:var(--muted);font-size:13px;padding:10px 0}
+/* table */
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tools input,.tools select{border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:6px 10px;min-width:0}
+.tools input{flex:1;min-width:160px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:start;font-size:12px;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface)}
+.tbl td{padding:8px;border-bottom:1px solid var(--grid);vertical-align:top}
+.tbl tr.row{cursor:pointer}
+.tbl tr.row:hover td{background:var(--s1-soft)}
+.tscroll{max-height:620px;overflow:auto}
+.trail{display:flex;flex-wrap:wrap;gap:4px;padding:2px 0 6px}
+.trail span{background:var(--grid);border-radius:999px;padding:2px 8px;font-size:11.5px;color:var(--text2)}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;background:var(--grid);color:var(--text2)}
+.pill.new{background:rgba(42,120,214,.14);color:var(--s1)}
+.pill.ret{background:rgba(15,138,74,.14);color:var(--good)}
+/* login */
+.gate{max-width:380px;margin:12vh auto;text-align:center}
+.gate img{width:64px}
+.gate h1{font-size:20px;margin:10px 0 4px}
+.gate p{color:var(--text2);margin:0 0 16px;font-size:13px}
+.gate input{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;margin-bottom:10px;text-align:center}
+.gate label{display:flex;gap:6px;align-items:center;justify-content:center;font-size:12.5px;color:var(--text2);margin-bottom:12px}
+.err{color:var(--bad);font-size:13px;min-height:20px;margin-top:8px;white-space:pre-line}
+.note{font-size:12px;color:var(--muted)}
+.funnel .bar .fill{background:var(--s1)}
+.live-list{display:flex;flex-wrap:wrap;gap:6px}
+.live-list span{background:rgba(15,138,74,.12);color:var(--good);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700}
+@media (max-width:640px){
+  .tbl thead{display:none}
+  .tbl tr.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:8px 4px;border-bottom:1px solid var(--grid)}
+  .tbl tr.row td{border:0;padding:1px 4px}
+  .tbl tr.row td:nth-child(1){grid-column:2;grid-row:1;color:var(--muted);font-size:12px}
+  .tbl tr.row td:nth-child(2){grid-column:1;grid-row:1;font-weight:700}
+  .tbl tr.row td:nth-child(3),.tbl tr.row td:nth-child(4),.tbl tr.row td:nth-child(5){grid-column:1 / -1}
+  .tbl tr.row td:nth-child(4) br{display:none}
+  .tbl tr.row td:nth-child(6)::before{content:"⏱ "} .tbl tr.row td:nth-child(7)::before{content:"أفعال: "}
+  .tbl tr.row td:nth-child(6),.tbl tr.row td:nth-child(7){font-size:12px;color:var(--text2)}
+  .tbl tr.trailrow td{display:block;border:0}
+  .tscroll{max-height:none}
+}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section id="gate" class="gate card">
+  <img src="logo.png" alt="Planet">
+  <h1>لوحة زوار الموقع</h1>
+  <p>للإدارة فقط — اكتب كلمة سر اللوحة.</p>
+  <form id="gateForm">
+    <input id="pass" type="password" autocomplete="current-password" placeholder="كلمة السر" required>
+    <label><input type="checkbox" id="remember"> افتكرني على الجهاز ده</label>
+    <button class="btn pri" style="width:100%" type="submit">دخول</button>
+  </form>
+  <div class="err" id="gateErr"></div>
+</section>
+
+<main id="app" hidden>
+  <header class="top">
+    <h1><img src="logo.png" alt="">لوحة زوار Planet</h1>
+    <div class="grow"></div>
+    <div class="chips" id="range">
+      <button class="chip" data-d="1">آخر ٢٤ ساعة</button>
+      <button class="chip" data-d="7">٧ أيام</button>
+      <button class="chip on" data-d="30">٣٠ يوم</button>
+      <button class="chip" data-d="90">٩٠ يوم</button>
+      <button class="chip" data-d="365">سنة</button>
+      <button class="chip" data-d="0">الكل</button>
+    </div>
+    <button class="btn" id="refresh" type="button">↻ تحديث</button>
+    <button class="btn" id="logout" type="button">خروج</button>
+  </header>
+  <p class="note" id="stamp" style="margin:-6px 0 12px"></p>
+
+  <div class="grid g6" id="kpis"></div>
+
+  <div class="card" style="margin-bottom:12px" id="liveCard" hidden>
+    <h2>موجودين دلوقتي على الموقع</h2>
+    <p class="sub">آخر إشارة منهم خلال آخر دقيقتين</p>
+    <div class="live-list" id="liveList"></div>
+  </div>
+
+  <div class="grid g21">
+    <div class="card">
+      <h2>الزيارات يوم بيوم</h2>
+      <p class="sub">الزيارة = فتحة للموقع · الزائر = شخص مختلف (جهاز مختلف)</p>
+      <div class="legend"><span><i style="background:var(--s1)"></i>زيارات</span><span><i style="background:var(--s2)"></i>زوار</span></div>
+      <div class="chart" id="daily"></div>
+    </div>
+    <div class="card">
+      <h2>الزيارات حسب الساعة</h2>
+      <p class="sub">بتوقيت القاهرة</p>
+      <div class="chart" id="hours"></div>
+    </div>
+  </div>
+
+  <div class="grid g2 stack">
+    <div class="card"><h2>من أي دولة؟</h2><p class="sub">الزيارات · ونسبتها من الإجمالي</p><div class="bars" id="countries"></div></div>
+    <div class="card"><h2>من أي مدينة؟</h2><p class="sub">أعلى ١٥ مدينة</p><div class="bars" id="cities"></div></div>
+  </div>
+
+  <div class="grid g3 stack">
+    <div class="card"><h2>جايين منين؟</h2><p class="sub">المصدر اللي فتحوا منه الرابط</p><div class="bars" id="referrers"></div></div>
+    <div class="card"><h2>رحلة الزائر</h2><p class="sub">كام زيارة وصلت لكل خطوة</p><div class="bars funnel" id="funnel"></div></div>
+    <div class="card"><h2>أكتر حاجات اتفتحت</h2><p class="sub">أعمال وعملاء وخدمات</p><div class="bars" id="exhibits"></div></div>
+  </div>
+
+  <div class="grid g3 stack">
+    <div class="card"><h2>الأجهزة</h2><p class="sub">موبايل · كمبيوتر · تابلت</p><div class="bars" id="devices"></div></div>
+    <div class="card"><h2>نظام التشغيل</h2><p class="sub">&nbsp;</p><div class="bars" id="os"></div></div>
+    <div class="card"><h2>المتصفح</h2><p class="sub">فيسبوك وإنستجرام = فتحوا من جوه التطبيق</p><div class="bars" id="browsers"></div></div>
+  </div>
+
+  <div class="grid g3 stack">
+    <div class="card"><h2>العوالم في الفضاء</h2><p class="sub">أكتر عوالم زاروها بالصاروخ</p><div class="bars" id="worlds"></div></div>
+    <div class="card"><h2>المباني اللي دخلوها</h2><p class="sub">المقر والاستوديوهات</p><div class="bars" id="buildings"></div></div>
+    <div class="card"><h2>كل الأفعال</h2><p class="sub">عدد مرات كل نوع</p><div class="bars" id="events"></div></div>
+  </div>
+
+  <div class="card">
+    <h2>الزوار واحد واحد</h2>
+    <p class="sub">آخر ٣٠٠ زيارة في الفترة — اضغط على أي صف تشوف عمل إيه</p>
+    <div class="tools">
+      <input id="q" type="search" placeholder="دوّر باسم أو دولة أو مدينة أو مصدر…">
+      <select id="fCountry"><option value="">كل الدول</option></select>
+      <select id="fDevice"><option value="">كل الأجهزة</option><option value="mobile">موبايل</option><option value="desktop">كمبيوتر</option><option value="tablet">تابلت</option></select>
+      <button class="btn" id="csv" type="button">⬇️ CSV</button>
+    </div>
+    <div class="tscroll">
+      <table class="tbl">
+        <thead><tr><th>الوقت</th><th>الاسم</th><th>المكان</th><th>الجهاز</th><th>المصدر</th><th>المدة</th><th>أفعال</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="note" id="rowsNote"></p>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <h2>الجهاز ده</h2>
+    <p class="sub">زياراتك إنت من الجهاز ده ممكن تبوّظ الأرقام — اقفلها هنا.</p>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="notrack"> متحسبش زياراتي من الجهاز ده</label>
+  </div>
+</main>
+</div>
+
+<script>
+const FN = 'https://fxgljuswxeovwimfokml.supabase.co/functions/v1/game-stats';
+const KEY = 'sb_publishable_l9G4Rf4BwKtJfXjLbqtzoA_lerUfKHZ';
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n || 0).toLocaleString('ar-EG');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const flag = cc => cc && /^[A-Z]{2}$/i.test(cc) ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '🌐';
+const dur = s => { s = Math.round(s || 0); if (s < 60) return `${fmt(s)} ث`; const m = Math.floor(s / 60); if (m < 60) return `${fmt(m)} د ${s % 60 ? fmt(s % 60) + ' ث' : ''}`; return `${fmt(Math.floor(m / 60))} س ${fmt(m % 60)} د`; };
+const DEV = { mobile: '📱 موبايل', desktop: '💻 كمبيوتر', tablet: '📟 تابلت' };
+const EV = { exhibit: 'فتح عرض', world: 'زار عالم', building: 'دخل مبنى', office: 'دخل المقر', deliver: 'سلّم بريف', whatsapp: 'ضغط واتساب', link: 'فتح رابط', game: 'لعب', car: 'ركب عربية', wall: 'كتب على الحيطة', mission: 'مهمة', chat: 'شات', photo: 'صورة', begin: 'بدأ الجولة' };
+const EXK = { client: 'عميل', work: 'شغل', svc: 'خدمة', brief: 'بريف', about: 'عننا', contact: 'تواصل', team: 'فريق' };
+const exLabel = l => { if (!l) return ''; const i = l.indexOf(': '); if (i < 0) return EXK[l] || l; return `${l.slice(i + 2)} · ${EXK[l.slice(0, i)] || l.slice(0, i)}`; };
+
+let PASS = '', DAYS = 30, DATA = null, timer = null;
+try { PASS = localStorage.getItem('pm-admin-pass') || sessionStorage.getItem('pm-admin-pass') || ''; } catch (e) {}
+try { $('notrack').checked = localStorage.getItem('pm-notrack') === '1'; } catch (e) {}
+$('notrack').onchange = e => { try { e.target.checked ? localStorage.setItem('pm-notrack', '1') : localStorage.removeItem('pm-notrack'); } catch (er) {} };
+
+async function load(){
+  $('refresh').disabled = true;
+  try {
+    const r = await fetch(FN, { method: 'POST', headers: { 'content-type': 'application/json', apikey: KEY, 'x-admin-pass': PASS }, body: JSON.stringify({ days: DAYS }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) return showGate('كلمة السر غلط.');
+    if (r.status === 503) return showGate('كلمة سر اللوحة لسه متضبطتش على السيرفر.\nمن Supabase ← Edge Functions ← Secrets ضيف GAME_ADMIN_PASS.');
+    if (!r.ok) throw new Error(j.detail || j.error || r.status);
+    DATA = j; $('gate').hidden = true; $('app').hidden = false; render();
+  } catch (e) {
+    if ($('app').hidden) showGate('مقدرتش أوصل للسيرفر: ' + e.message);
+    else $('stamp').textContent = '⚠️ تعذّر التحديث: ' + e.message;
+  } finally { $('refresh').disabled = false; }
+}
+function showGate(msg){ $('app').hidden = true; $('gate').hidden = false; $('gateErr').textContent = msg || ''; clearInterval(timer); }
+$('gateForm').onsubmit = e => { e.preventDefault(); clearInterval(timer); PASS = $('pass').value.trim(); try { ($('remember').checked ? localStorage : sessionStorage).setItem('pm-admin-pass', PASS); } catch (er) {} $('gateErr').textContent = '…'; load().then(() => { timer = setInterval(load, 60000); }); };
+$('logout').onclick = () => { try { localStorage.removeItem('pm-admin-pass'); sessionStorage.removeItem('pm-admin-pass'); } catch (e) {} PASS = ''; showGate(''); };
+$('refresh').onclick = load;
+document.querySelectorAll('#range .chip').forEach(b => b.onclick = () => { document.querySelectorAll('#range .chip').forEach(x => x.classList.toggle('on', x === b)); DAYS = +b.dataset.d; load(); });
+
+/* ---------- render ---------- */
+function render(){
+  const d = DATA;
+  $('stamp').textContent = `آخر تحديث ${new Date(d.generatedAt).toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' })} · بيتحدّث لوحده كل دقيقة`;
+  const k = d.kpi, p = d.prevKpi;
+  const delta = (a, b, invert) => { if (!p || b === undefined || b === null) return ''; if (!b) return a ? '<span class="flat">جديد في الفترة دي</span>' : '<span class="flat">—</span>';
+    const pc = Math.round((a - b) / b * 100); if (!pc) return '<span class="flat">زي الفترة اللي فاتت</span>';
+    const good = invert ? pc < 0 : pc > 0; return `<span class="${good ? 'up' : 'down'}">${pc > 0 ? '▲' : '▼'} ${fmt(Math.abs(pc))}٪ عن الفترة اللي فاتت</span>`; };
+  const tile = (lbl, val, dl, cls = '') => `<div class="card tile ${cls}"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="delta">${dl}</div></div>`;
+  $('kpis').innerHTML =
+    tile('الزيارات', fmt(k.visits), delta(k.visits, p && p.visits)) +
+    tile('زوار مختلفين', fmt(k.visitors), delta(k.visitors, p && p.visitors)) +
+    tile('متوسط مدة الزيارة', dur(k.avgDur), delta(k.avgDur, p && p.avgDur)) +
+    tile('مشيوا بسرعة', `${fmt(k.bounce)}٪`, p ? `<span class="flat">أقل من ١٠ ثواني</span>` : '') +
+    tile('رجعوا تاني', `${fmt(k.returning)}٪`, '<span class="flat">زاروا قبل كده</span>') +
+    tile('موجودين دلوقتي', `<span class="dot"></span>${fmt(d.live.length)}`, '<span class="flat">آخر دقيقتين</span>', 'live');
+  $('liveCard').hidden = !d.live.length;
+  $('liveList').innerHTML = d.live.map(v => `<span>${flag(countryCode(v.country))} ${esc(v.nick || 'زائر')}${v.city ? ' · ' + esc(v.city) : ''} · ${DEV[v.device] || ''}</span>`).join('');
+
+  lineChart($('daily'), d.daily);
+  hourChart($('hours'), d.hours);
+  const total = k.visits || 1;
+  bars($('countries'), d.countries.map(c => ({ name: `${flag(c.code)} ${c.name}`, n: c.n, note: `${fmt(Math.round(c.n / total * 100))}٪` })), 'زيارة');
+  bars($('cities'), d.cities.map(c => ({ name: c.k, n: c.n })), 'زيارة');
+  bars($('referrers'), d.referrers.map(c => ({ name: refName(c.k), n: c.n })), 'زيارة');
+  const f0 = d.funnel[0].n || 1;
+  bars($('funnel'), d.funnel.map(c => ({ name: c.k, n: c.n, note: `${fmt(Math.round(c.n / f0 * 100))}٪` })), 'زيارة', f0);
+  bars($('exhibits'), d.exhibits.map(c => ({ name: exLabel(c.k), n: c.n })), 'مرة');
+  bars($('devices'), d.devices.map(c => ({ name: DEV[c.k] || c.k, n: c.n })), 'زيارة');
+  bars($('os'), d.os.map(c => ({ name: c.k, n: c.n })), 'زيارة');
+  bars($('browsers'), d.browsers.map(c => ({ name: c.k, n: c.n })), 'زيارة');
+  bars($('worlds'), d.worlds.map(c => ({ name: c.k, n: c.n })), 'مرة');
+  bars($('buildings'), d.buildings.map(c => ({ name: c.k, n: c.n })), 'مرة');
+  bars($('events'), d.events.map(c => ({ name: EV[c.k] || c.k, n: c.n })), 'مرة');
+
+  const cs = [...new Set(d.recent.map(v => v.country).filter(Boolean))].sort();
+  const keep = $('fCountry').value;
+  $('fCountry').innerHTML = '<option value="">كل الدول</option>' + cs.map(c => `<option${c === keep ? ' selected' : ''}>${esc(c)}</option>`).join('');
+  table();
+}
+function countryCode(name){ const c = DATA && DATA.countries.find(x => x.name === name); return c && c.code; }
+function refName(h){ const m = { 'facebook.com': 'فيسبوك', 'instagram.com': 'إنستجرام', 'google.com': 'جوجل', 'linkedin.com': 'لينكدإن', 't.co': 'X (تويتر)', 'x.com': 'X (تويتر)', 'wa.me': 'واتساب', 'web.whatsapp.com': 'واتساب', 'tiktok.com': 'تيك توك', 'theplanetco.com': 'موقع Planet' }; return m[h] ? `${m[h]} <small>${h}</small>` : h === 'مباشر' ? 'مباشر <small>(كتب الرابط أو من تطبيق)</small>' : h; }
+
+function bars(el, list, unit, maxOverride){
+  if (!list.length){ el.innerHTML = '<div class="empty">لسه مفيش بيانات في الفترة دي.</div>'; return; }
+  const max = maxOverride || Math.max(...list.map(x => x.n), 1);
+  el.innerHTML = list.map(x => `<div class="bar" title="${esc(x.name.replace(/<[^>]+>/g, ''))}: ${fmt(x.n)} ${unit}"><span class="nm">${x.name.includes('<small>') ? x.name : esc(x.name)}</span><span class="num">${fmt(x.n)}${x.note ? ' · ' + x.note : ''}</span><span class="trk"><span class="fill" style="width:${Math.max(1, x.n / max * 100)}%"></span></span></div>`).join('');
+}
+
+/* daily: two series, one axis, crosshair tooltip */
+function lineChart(el, rows){
+  const W = Math.max(320, el.clientWidth || 600), H = 230, pl = 34, pr = 10, pt = 10, pb = 26;
+  const n = rows.length, max = Math.max(1, ...rows.map(r => r.visits));
+  const nice = (() => { const s = Math.pow(10, Math.floor(Math.log10(max))); return Math.ceil(max / s) * s; })();
+  const x = i => n === 1 ? (pl + W - pr) / 2 : pl + (W - pl - pr) * i / (n - 1), y = v => pt + (H - pt - pb) * (1 - v / nice);
+  const path = key => rows.map((r, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(r[key]).toFixed(1)}`).join('');
+  const ticks = [0, .25, .5, .75, 1].map(t => Math.round(nice * t));
+  const every = Math.max(1, Math.ceil(n / 7));
+  const lab = d => { const [, m, dd] = d.split('-'); return `${+dd}/${+m}`; };
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="زيارات وزوار كل يوم">
+    <g class="axis">${ticks.map(t => `<line class="gridl" x1="${pl}" x2="${W - pr}" y1="${y(t)}" y2="${y(t)}"/><text x="${pl - 6}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text>`).join('')}
+    ${rows.map((r, i) => i % every === 0 || i === n - 1 ? `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${lab(r.d)}</text>` : '').join('')}</g>
+    <path d="${path('visits')} L${x(n - 1)},${y(0)} L${x(0)},${y(0)} Z" fill="var(--s1-soft)"/>
+    <path d="${path('visits')}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${path('visitors')}" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <line id="xh" y1="${pt}" y2="${H - pb}" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0"/>
+    <circle id="xa" r="4.5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2" opacity="0"/><circle id="xb" r="4.5" fill="var(--s2)" stroke="var(--surface)" stroke-width="2" opacity="0"/>
+    <rect x="${pl}" y="0" width="${W - pl - pr}" height="${H}" fill="transparent" id="hit"/>
+  </svg><div class="tip" id="dtip"></div>`;
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip');
+  const show = ev => { const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * W / r.width; const i = Math.max(0, Math.min(n - 1, Math.round((px - pl) / ((W - pl - pr) / Math.max(1, n - 1)))));
+    const row = rows[i]; ['xh', 'xa', 'xb'].forEach(id => svg.getElementById ? null : null);
+    const xh = svg.querySelector('#xh'), xa = svg.querySelector('#xa'), xb = svg.querySelector('#xb');
+    xh.setAttribute('x1', x(i)); xh.setAttribute('x2', x(i)); xh.setAttribute('opacity', 1);
+    xa.setAttribute('cx', x(i)); xa.setAttribute('cy', y(row.visits)); xa.setAttribute('opacity', 1);
+    xb.setAttribute('cx', x(i)); xb.setAttribute('cy', y(row.visitors)); xb.setAttribute('opacity', 1);
+    tip.innerHTML = `${new Date(row.d + 'T12:00:00').toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}<br><b>${fmt(row.visits)}</b> زيارة · <b>${fmt(row.visitors)}</b> زائر`;
+    tip.style.left = (x(i) / W * r.width) + 'px'; tip.style.top = (y(row.visits) / H * r.height) + 'px'; tip.style.opacity = 1; };
+  const hide = () => { tip.style.opacity = 0; svg.querySelectorAll('#xh,#xa,#xb').forEach(e => e.setAttribute('opacity', 0)); };
+  const hit = svg.querySelector('#hit'); hit.addEventListener('pointermove', show); hit.addEventListener('pointerdown', show); hit.addEventListener('pointerleave', hide);
+}
+
+function hourChart(el, hours){
+  const W = Math.max(260, el.clientWidth || 300), H = 230, pl = 26, pr = 4, pt = 10, pb = 26;
+  const max = Math.max(1, ...hours.map(h => h.n)), bw = (W - pl - pr) / 24;
+  const y = v => pt + (H - pt - pb) * (1 - v / max);
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="الزيارات حسب ساعة اليوم">
+    <g class="axis"><line class="gridl" x1="${pl}" x2="${W - pr}" y1="${y(0)}" y2="${y(0)}"/><text x="${pl - 5}" y="${y(max) + 4}" text-anchor="end">${fmt(max)}</text>
+    ${[0, 6, 12, 18, 23].map(h => `<text x="${pl + bw * h + bw / 2}" y="${H - 8}" text-anchor="middle">${h === 0 ? '١٢ص' : h === 12 ? '١٢م' : h < 12 ? fmt(h) + 'ص' : fmt(h - 12) + 'م'}</text>`).join('')}</g>
+    ${hours.map(h => { const top = y(h.n), hgt = Math.max(0, y(0) - top); return `<g class="hb" data-h="${h.h}" data-n="${h.n}"><rect x="${pl + bw * h.h}" y="${pt}" width="${bw}" height="${H - pt - pb}" fill="transparent"/>${h.n ? `<path d="M${pl + bw * h.h + 1},${y(0)} V${top + Math.min(4, hgt)} q0,-${Math.min(4, hgt)} ${Math.min(4, hgt)},-${Math.min(4, hgt)} H${pl + bw * (h.h + 1) - 1 - Math.min(4, hgt)} q${Math.min(4, hgt)},0 ${Math.min(4, hgt)},${Math.min(4, hgt)} V${y(0)} Z" fill="var(--s1)"/>` : ''}</g>`; }).join('')}
+  </svg><div class="tip"></div>`;
+  const tip = el.querySelector('.tip'), svg = el.querySelector('svg');
+  el.querySelectorAll('.hb').forEach(g => { const f = () => { const r = svg.getBoundingClientRect(), h = +g.dataset.h, n = +g.dataset.n;
+    const lbl = h === 0 ? '١٢ بالليل' : h === 12 ? '١٢ الضهر' : h < 12 ? `${fmt(h)} الصبح` : `${fmt(h - 12)} بالليل`;
+    tip.innerHTML = `الساعة ${lbl}<br><b>${fmt(n)}</b> زيارة`; tip.style.left = ((pl + bw * h + bw / 2) / W * r.width) + 'px'; tip.style.top = (y(n) / H * r.height) + 'px'; tip.style.opacity = 1; };
+    g.addEventListener('pointermove', f); g.addEventListener('pointerdown', f); g.addEventListener('pointerleave', () => tip.style.opacity = 0); });
+}
+
+/* visitors table */
+function filtered(){
+  const q = $('q').value.trim().toLowerCase(), c = $('fCountry').value, dv = $('fDevice').value;
+  return DATA.recent.filter(v => (!c || v.country === c) && (!dv || v.device === dv) &&
+    (!q || [v.nick, v.country, v.city, v.region, v.referrer, v.utm_source, v.os, v.browser].some(s => s && String(s).toLowerCase().includes(q))));
+}
+function table(){
+  const rows = filtered();
+  $('rowsNote').textContent = `${fmt(rows.length)} زيارة معروضة${DATA.totalRows > DATA.recent.length ? ` من آخر ${fmt(DATA.recent.length)} (إجمالي الفترة ${fmt(DATA.totalRows)})` : ''}`;
+  if (!rows.length){ $('rows').innerHTML = `<tr><td colspan="7" class="empty">مفيش زيارات بالفلاتر دي.</td></tr>`; return; }
+  $('rows').innerHTML = rows.map((v, i) => {
+    const t = new Date(v.started_at);
+    const when = t.toLocaleString('ar-EG', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+    let ref = 'مباشر'; try { if (v.referrer) ref = new URL(v.referrer).hostname.replace(/^www\.|^m\.|^l\./, ''); } catch (e) {}
+    if (v.utm_source) ref += ` · ${v.utm_source}`;
+    return `<tr class="row" data-i="${i}"><td>${esc(when)}</td><td>${esc(v.nick || 'زائر')} <span class="pill ${v.is_return ? 'ret' : 'new'}">${v.is_return ? 'راجع' : 'جديد'}</span></td>
+      <td>${flag(v.country_code)} ${esc(v.city || '')}${v.city && v.country ? '، ' : ''}${esc(v.country || 'غير معروف')}</td>
+      <td>${DEV[v.device] || esc(v.device || '')}<br><small class="note">${esc(v.os || '')} · ${esc(v.browser || '')}</small></td>
+      <td>${esc(ref)}</td><td>${dur(v.dur)}</td><td>${fmt(v.events)}</td></tr>
+      <tr class="trailrow" data-for="${i}" hidden><td colspan="7"><div class="trail">${v.trail.length ? v.trail.map(e => `<span>${esc(EV[e.t] || e.t)}${e.l ? ': ' + esc(e.t === 'exhibit' ? exLabel(e.l) : e.l) : ''}</span>`).join('') : '<span>لفّ وبصّ بس — مفتحش حاجة</span>'}${v.screen ? `<span>شاشة ${esc(v.screen)}</span>` : ''}${v.lang ? `<span>لغة ${esc(v.lang)}</span>` : ''}</div></td></tr>`;
+  }).join('');
+  $('rows').querySelectorAll('tr.row').forEach(tr => tr.onclick = () => { const t = $('rows').querySelector(`tr[data-for="${tr.dataset.i}"]`); t.hidden = !t.hidden; });
+}
+['q', 'fCountry', 'fDevice'].forEach(id => $(id).addEventListener('input', () => DATA && table()));
+$('csv').onclick = () => {
+  const head = ['الوقت', 'الاسم', 'الدولة', 'المدينة', 'الجهاز', 'النظام', 'المتصفح', 'المصدر', 'utm', 'المدة بالثواني', 'الأفعال', 'راجع'];
+  const lines = [head].concat(filtered().map(v => [v.started_at, v.nick || '', v.country || '', v.city || '', v.device || '', v.os || '', v.browser || '', v.referrer || '', v.utm_source || '', v.dur, v.events, v.is_return ? 'نعم' : 'لا']));
+  const csv = '﻿' + lines.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `planet-visitors-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+};
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => DATA && render(), 200); });
+
+if (PASS){ $('gateErr').textContent = '…'; load().then(() => { timer = setInterval(load, 60000); }); }
+</script>
+</body>
+</html>

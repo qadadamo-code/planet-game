@@ -4,8 +4,8 @@ const L = (en, ar) => ({ en, ar });
 const UI = {
   kicker: L("Creative marketing — New Cairo", "تسويق إبداعي — القاهرة الجديدة"),
   begin: L("BEGIN", "ابدأ"),
-  hint: L("You are Planet's messenger. Deliver eight briefs to the eight studios, find every place on the planet, and collect the stars.",
-          "أنت ساعي Planet. سلّم تمن بريفات لاستوديوهات الكوكب، واكتشف كل الأماكن، ولمّ النجوم."),
+  hint: L("This isn't a game. We wanted to change how we show our work and our clients — so we built a world you walk through instead of a page you scroll. Creative, and far from boring.",
+          "الموقع ده مش لعبة. حبّينا نغيّر طريقة عرض أعمالنا وعملائنا، ونقدّمها بطريقة إبداعية بعيد عن الملل — عالم تمشي فيه بدل صفحة تقلّبها."),
   keys: L("<kbd>WASD</kbd> walk · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>E</kbd> talk · drag to look · <kbd>J</kbd> journal",
           "<kbd>WASD</kbd> walk · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>E</kbd> talk · drag to look · <kbd>J</kbd> journal"),
   talk: L("Talk to", "كلّم"), visit: L("Look at", "اقرأ"),
