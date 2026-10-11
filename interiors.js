@@ -306,7 +306,7 @@ const _hv = new THREE.Vector3();
 function placeSitBubble(){
   const b = $('sitbubble'); if (!b || b.hidden || !sitting) return;
   _hv.copy(player.position).add(new THREE.Vector3(0, 1.7, 0)).project(camera);
-  const x = (_hv.x * 0.5 + 0.5) * innerWidth, y = (-_hv.y * 0.5 + 0.5) * innerHeight;
+  const x = (_hv.x * 0.5 + 0.5) * (canvas.clientWidth || innerWidth), y = (-_hv.y * 0.5 + 0.5) * (canvas.clientHeight || innerHeight);
   b.style.left = Math.max(10, Math.min(innerWidth - b.offsetWidth - 10, x - b.offsetWidth / 2)) + 'px'; b.style.top = Math.max(innerWidth < 700 ? 64 : 10, y - b.offsetHeight - 14) + 'px';
 }
 

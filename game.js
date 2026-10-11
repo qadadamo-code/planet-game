@@ -690,11 +690,12 @@ function dismount(){ riding = false; setTimeout(paintFutureBtn, 0); player.remov
 $('ride').onclick = () => { if (riding && state === 'play') dismount(); };
 /* while driving: switch between today's car and the one from the future */
 function paintFutureBtn(){ let b = $('futurebtn');
-  if (!b){ b = document.createElement('button'); b.id = 'futurebtn'; b.type = 'button'; b.className = 'panel'; document.body.appendChild(b);
+  if (!b){ b = document.createElement('button'); b.id = 'futurebtn'; b.type = 'button'; b.className = 'panel tbtn'; const tl = document.querySelector('.tools'); if (tl) tl.prepend(b); else document.body.appendChild(b);
     b.onclick = () => { if (!riding || !car) return; setCarStyle(car, !car.userData.car.future); Sfx.open(); paintFutureBtn();
       burst(player.position.clone().addScaledVector(pDir, 1), car.userData.car.future ? 0x5FF2FF : 0xF2C94C, 30, 3, 0.7);
       mini(car.userData.car.future ? (lang === 'ar' ? '✨ عربية من المستقبل!' : '✨ A car from the future!') : (lang === 'ar' ? '🚗 رجعنا للعربية العادية' : '🚗 Back to a regular car')); }; }
-  b.hidden = !riding; if (riding && car) b.textContent = car.userData.car.future ? (lang === 'ar' ? '🚗 عربية عادية' : '🚗 Regular car') : (lang === 'ar' ? '✨ عربية المستقبل' : '✨ Future car');
+  b.hidden = !riding; if (riding && car){ const fut = car.userData.car.future; b.textContent = fut ? '🚗' : '✨';
+    const lbl = fut ? (lang === 'ar' ? 'عربية عادية' : 'Regular car') : (lang === 'ar' ? 'عربية المستقبل' : 'Future car'); b.title = lbl; b.setAttribute('aria-label', lbl); }
 }
 
 /* bumping into other cars: both get knocked apart, with a thump */
@@ -1335,8 +1336,8 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 
-function resize(){ const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.fov = w < h ? 66 : 55; camera.updateProjectionMatrix(); }
-addEventListener('resize', resize);
+function resize(){ const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.fov = w < h ? 66 : 55; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); if (window.visualViewport) visualViewport.addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250));
 
 /* ---------- start ---------- */
 $('begin').onclick = () => {

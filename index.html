@@ -32,6 +32,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--space);color:var
 body.ar{font-family:var(--ar)}
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;opacity:.08;mix-blend-mode:multiply;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
 canvas#world{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+@supports (height:100lvh){canvas#world{bottom:auto;height:100lvh}}
 button{font:inherit;cursor:pointer;color:inherit}
 :focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .layer{position:fixed;inset:0;pointer-events:none}
@@ -71,7 +72,7 @@ body.ar .tbtn{font-family:var(--ar);font-size:15px}
 
 /* HUD */
 #hud{padding:calc(14px + env(safe-area-inset-top,0px)) 14px 14px;z-index:20}
-#hud .bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 170px)}
+#hud .bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 360px)}
 .chip{display:flex;align-items:center;gap:8px;padding:6px 11px;font-weight:700;font-size:13px}
 .chip img{height:22px;display:block}
 .pips{display:flex;gap:3px}
@@ -129,7 +130,7 @@ body.ar .round{font-family:var(--ar);font-size:16px}
 
 #minimap{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));inset-inline-end:14px;width:150px;height:150px;border-radius:50%;padding:0;z-index:21;cursor:pointer;background:transparent;border:0;box-shadow:4px 4px 0 var(--ink)}
 #minimap[hidden],#bigmap[hidden],#futurebtn[hidden]{display:none}
-#futurebtn{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom,0px));padding:8px 16px;font-weight:800;font-size:15px;z-index:24;cursor:pointer;background:linear-gradient(90deg,#7FE8FF,#FF9BE2)}
+#futurebtn{font-size:17px;cursor:pointer;background:linear-gradient(135deg,#7FE8FF,#FF9BE2)}
 #bigmap{display:grid;place-items:center;z-index:45;background:rgba(6,9,26,.72);padding:calc(24px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px))}
 .bm-card{position:relative;width:min(980px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px}
 .bm-x{position:absolute;top:-14px;inset-inline-end:-12px;background:var(--gold);box-shadow:3px 3px 0 var(--ink)}
@@ -143,7 +144,6 @@ body.ar .round{font-family:var(--ar);font-size:16px}
 .bm-place{display:flex;align-items:center;gap:8px;font:inherit;font-size:14px;text-align:start;background:#fff;border:2px solid #cfd8ea;border-radius:8px;padding:7px 10px;cursor:pointer;color:var(--ink)}
 .bm-place:hover,.bm-place.on{border-color:var(--ink);background:#FFF3C4}.bm-place i{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);flex:none}.bm-place span{flex:1}.bm-place small{color:#5B6584;font-family:var(--display);font-size:11px}
 @media (max-width:640px){#minimap{top:calc(150px + env(safe-area-inset-top,0px));width:104px;height:104px}.bm-body{grid-template-columns:1fr;overflow:auto}#bigmapc{max-height:42vh}#bmlist{max-height:none}}
-@media (pointer:coarse){#futurebtn{bottom:calc(240px + env(safe-area-inset-bottom,0px))}}
 #chatbtn{position:fixed;right:20px;bottom:calc(92px + env(safe-area-inset-bottom,0px));width:52px;height:52px;border-radius:50%;font-size:24px;display:grid;place-items:center;z-index:23;background:var(--paper);box-shadow:4px 4px 0 var(--ink)}
 #chatbtn i{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;border-radius:11px;background:#E05A5A;color:#fff;font:800 12px/22px var(--display);font-style:normal;border:2px solid var(--ink)}
 #chatbox{position:fixed;right:14px;bottom:calc(154px + env(safe-area-inset-bottom,0px));width:min(340px,calc(100% - 28px));max-height:min(420px,calc(100% - 240px));display:flex;flex-direction:column;z-index:37;padding:10px;gap:8px}
@@ -432,6 +432,15 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 .lb-list li.me{background:#FFF3C8}.lb-list li i{font-style:normal;width:28px}.lb-list li span{flex:1;text-align:start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lb-list li b{font-size:17px}
 #voicebtn.off{opacity:.7}
 @media (max-width:640px){#missionchip{top:calc(298px + env(safe-area-inset-top,0px));font-size:12px;padding:5px 9px;max-width:170px}#missionchip span{display:none}}
+/* touch layout: keep the bottom controls in their own columns */
+@media (pointer:coarse){#ride{left:auto;right:20px;transform:none;bottom:calc(176px + env(safe-area-inset-bottom,0px));padding:7px 14px;font-size:15px}}
+@media (pointer:coarse) and (max-height:500px){
+  #minimap{width:120px;height:120px}
+  #dailychip{top:calc(120px + env(safe-area-inset-top,0px));inset-inline-end:146px}
+  #missionchip{top:calc(160px + env(safe-area-inset-top,0px));inset-inline-end:146px}
+  #raceboard{top:calc(200px + env(safe-area-inset-top,0px))}
+  #chatbtn{left:164px;bottom:calc(30px + env(safe-area-inset-bottom,0px))}
+}
 </style>
 </head>
 <body class="ar">
@@ -531,17 +540,17 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js?v=17"></script>
-<script src="site-data.js?v=17"></script>
-<script src="game.js?v=17"></script>
-<script src="exhibit.js?v=17"></script>
-<script src="space.js?v=17"></script>
-<script src="office.js?v=17"></script>
+<script src="content.js?v=18"></script>
+<script src="site-data.js?v=18"></script>
+<script src="game.js?v=18"></script>
+<script src="exhibit.js?v=18"></script>
+<script src="space.js?v=18"></script>
+<script src="office.js?v=18"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="net.js?v=17"></script>
-<script src="interiors.js?v=17"></script>
-<script src="extras.js?v=17"></script>
-<script src="features.js?v=17"></script>
-<script src="map.js?v=17"></script>
+<script src="net.js?v=18"></script>
+<script src="interiors.js?v=18"></script>
+<script src="extras.js?v=18"></script>
+<script src="features.js?v=18"></script>
+<script src="map.js?v=18"></script>
 </body>
 </html>
