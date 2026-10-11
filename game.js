@@ -875,7 +875,7 @@ function applyLang(){
   document.body.classList.toggle('ar', lang === 'ar');
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'; document.documentElement.lang = lang;
   $('lang').textContent = lang === 'ar' ? 'EN' : 'عربي';
-  document.querySelectorAll('[data-t]').forEach(el => el.innerHTML = t(UI[el.dataset.t]));
+  document.querySelectorAll('[data-t]').forEach(el => { const v = UI[el.dataset.t]; if (v) el.innerHTML = t(v); });   // a missing key (stale cached file) must not stop the game from starting
   $('keys').innerHTML = t(UI.keys);
   updateHud(); if (dlg.active) renderLine(true); if (state === 'journal') renderJournal(); if (state === 'exhibit' && xRender) xRender();
 }

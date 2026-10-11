@@ -367,15 +367,21 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.ser
 let installEvt = null;
 const standalone = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('install').hidden = false; });
-if (isIOS && !standalone) $('install').hidden = false;
-addEventListener('appinstalled', () => { $('install').hidden = true; mini(lang === 'ar' ? '📲 Planet بقى على شاشتك' : '📲 Planet is on your home screen'); });
+const showInstall = on => { $('install').hidden = $('install2').hidden = !on; };
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; showInstall(true); });
+if (isIOS && !standalone) showInstall(true);
+addEventListener('appinstalled', () => { showInstall(false); mini(lang === 'ar' ? '📲 Planet بقى على شاشتك' : '📲 Planet is on your home screen'); });
+$('install2').onclick = () => $('install').onclick();
 $('install').onclick = async () => {
   Sfx.click();
-  if (installEvt){ installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('install').hidden = true; return; }
-  EXTRA.install = () => shell(L("INSTALL","ثبّت التطبيق"), lang === 'ar' ? 'Planet على شاشتك الرئيسية' : 'Planet on your home screen', `
-    <ol class="steps"><li>${lang === 'ar' ? 'دوس على زرار <b>المشاركة</b> ⬆️ تحت في Safari' : 'Tap the <b>Share</b> ⬆️ button in Safari'}</li>
-    <li>${lang === 'ar' ? 'اختار <b>إضافة إلى الشاشة الرئيسية</b> ➕' : 'Choose <b>Add to Home Screen</b> ➕'}</li>
-    <li>${lang === 'ar' ? 'دوس <b>إضافة</b> — وهتلاقي أيقونة Planet جنب تطبيقاتك' : 'Tap <b>Add</b> — the Planet icon joins your apps'}</li></ol>`);
+  if (installEvt){ installEvt.prompt(); const ch = await installEvt.userChoice; installEvt = null; if (ch && ch.outcome === 'accepted') showInstall(false); return; }
+  const ar = lang === 'ar', steps = isIOS
+    ? [ar ? 'دوس على زرار <b>المشاركة</b> ⬆️ (تحت في Safari، أو فوق في Chrome)' : 'Tap the <b>Share</b> ⬆️ button (bottom in Safari, top in Chrome)',
+       ar ? 'انزل واختار <b>إضافة إلى الشاشة الرئيسية</b> ➕' : 'Scroll and choose <b>Add to Home Screen</b> ➕',
+       ar ? 'دوس <b>إضافة</b> — وهتلاقي أيقونة Planet جنب تطبيقاتك' : 'Tap <b>Add</b> — the Planet icon joins your apps']
+    : [ar ? 'افتح قائمة المتصفح <b>⋮</b> (فوق على اليمين)' : 'Open the browser menu <b>⋮</b> (top right)',
+       ar ? 'اختار <b>تثبيت التطبيق</b> أو <b>إضافة إلى الشاشة الرئيسية</b>' : 'Choose <b>Install app</b> or <b>Add to Home screen</b>',
+       ar ? 'دوس <b>تثبيت</b> — وهتلاقي أيقونة Planet جنب تطبيقاتك' : 'Tap <b>Install</b> — the Planet icon joins your apps'];
+  EXTRA.install = () => shell(L("INSTALL","ثبّت التطبيق"), ar ? 'Planet على شاشتك الرئيسية' : 'Planet on your home screen', `<ol class="steps">${steps.map(x => `<li>${x}</li>`).join('')}</ol>`);
   EXHIBITS.install = EXTRA.install; openExhibit('install');
 };

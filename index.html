@@ -320,6 +320,8 @@ button.ex-cta{font:inherit;font-weight:900}
 .cgrid a.wa{background:#e6f9ee}.cgrid a.ig{background:#fde9f1}.cgrid a.fb{background:#e8effc}.cgrid a.li{background:#e5f1f8}.cgrid a.yt{background:#fde8e6}
 .cgrid small{overflow-wrap:anywhere}
 .clinks{display:flex;gap:8px;flex-wrap:wrap}.clinks a{border:2px solid var(--ink);border-radius:999px;padding:6px 14px;font-weight:700;text-decoration:none;color:var(--ink);background:#fff;box-shadow:2px 2px 0 var(--blue)}
+.installcta{font:inherit;font-weight:800;font-size:17px;padding:10px 22px;border-radius:999px;border:3px solid var(--ink);background:var(--paper);color:var(--ink);box-shadow:4px 4px 0 var(--ink);animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px)}}
 .steps{margin:0;padding-inline-start:22px;display:grid;gap:12px;font-size:17px;line-height:1.6}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -337,7 +339,7 @@ button.ex-cta{font:inherit;font-weight:900}
 
 <div class="tools">
   <button class="panel tbtn" id="jbtn" type="button" hidden aria-label="Journal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg></button>
-  <button class="panel tbtn" id="install" type="button" hidden aria-label="Install">📲</button>
+  <button class="panel tbtn" id="install" type="button" hidden aria-label="Install" data-t="installShort"></button>
   <button class="panel tbtn" id="dn" type="button" aria-label="Day / night">☀️</button>
   <button class="panel tbtn" id="snd" type="button" aria-label="Sound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path id="sndwave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path id="sndoff" d="M16 9l6 6M22 9l-6 6" hidden/></svg></button>
   <button class="panel tbtn" id="lang" type="button">EN</button>
@@ -351,6 +353,7 @@ button.ex-cta{font:inherit;font-weight:900}
   <div class="sub" dir="ltr">MESSENGER</div>
   <div class="kicker" data-t="kicker"></div>
   <button class="begin" id="begin" type="button" data-t="begin"></button>
+  <button class="installcta" id="install2" type="button" hidden data-t="install"></button>
   <p class="hint" data-t="hint"></p>
 </div>
 
@@ -419,10 +422,10 @@ button.ex-cta{font:inherit;font-weight:900}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js"></script>
-<script src="site-data.js"></script>
-<script src="game.js"></script>
-<script src="exhibit.js"></script>
-<script src="space.js"></script>
+<script src="content.js?v=3"></script>
+<script src="site-data.js?v=3"></script>
+<script src="game.js?v=3"></script>
+<script src="exhibit.js?v=3"></script>
+<script src="space.js?v=3"></script>
 </body>
 </html>

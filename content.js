@@ -30,6 +30,7 @@ const UI = {
   copy: L("Copy", "نسخ"), copied: L("Copied", "اتنسخ"),
   start: L("Start a project", "ابدأ مشروعك"), work: L("See our work", "شوف شغلنا"), keep: L("Keep exploring", "كمّل استكشاف"),
   me: L("MESSENGER", "الساعي"),
+  install: L("📲 Install the app", "📲 ثبّت التطبيق"), installShort: L("📲 Install", "📲 ثبّت"),
 };
 
 /* kind = building model. svc = one of the 8 delivery targets. */
