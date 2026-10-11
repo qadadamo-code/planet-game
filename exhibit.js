@@ -20,6 +20,7 @@ const X = {
 const xsvc = id => t(POIS.find(p => p.id === id).name);
 const xshuffle = a => { const b = [...a]; for (let i = b.length - 1; i > 0; i--){ const j = Math.random()*(i + 1)|0; [b[i], b[j]] = [b[j], b[i]]; } return b; };
 const xini = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join('');
+const EXTRA = {};
 let xRender = null, xKeys = null, xPrevState = 'play', xAfter = null;
 
 function openExhibit(kind, arg, after){
@@ -147,7 +148,7 @@ const EXHIBITS = {
 
 /* which showcase each place opens */
 const PLACE_EXHIBIT = { gallery: ['work', 0], fly: ['work', 'fly29'], monument: ['clients'], careers: ['team'], cafe: ['team'],
-  lab: ['products'], academy: ['products'], observatory: ['about'], lighthouse: ['about'], values: ['about'], hq: ['contact'] };
+  lab: ['products'], academy: ['quiz'], process: ['brief'], observatory: ['about'], lighthouse: ['about'], values: ['about'], hq: ['brief'] };
 function exhibitFor(p){
   if (p.svc) return () => openExhibit('service', p.id);
   const e = PLACE_EXHIBIT[p.id]; return e ? () => openExhibit(e[0], e[1]) : null;
@@ -160,3 +161,150 @@ addEventListener('keydown', e => {
   if (e.code === 'Escape' || e.code === 'KeyE' && !e.target.closest('a,button')){ closeExhibit(); e.preventDefault(); e.stopImmediatePropagation(); return; }
   if (xKeys) xKeys(e);
 }, true);
+
+/* ---------- brief builder: a few questions, then the services that fit, a client like you, and a ready WhatsApp message ---------- */
+const INDS = [
+  ['food', L("Restaurants & cafés","مطاعم وكافيهات"), '🍽️', 'qidra'], ['health', L("Medical & clinics","طبي وعيادات"), '🩺', 'gms'],
+  ['estate', L("Real estate","عقارات"), '🏙️', 'mavi'], ['travel', L("Travel & tourism","سفر وسياحة"), '✈️', 'fly29'],
+  ['finance', L("Finance & investment","مالية واستثمار"), '📊', 'united'], ['legal', L("Legal & professional","خدمات قانونية ومهنية"), '⚖️', 'wakeelak'],
+  ['retail', L("Retail & products","براند ومنتجات"), '🛍️', 'c-lorya'], ['charity', L("Non-profit","عمل خيري"), '🤝', 'zaytouna'],
+  ['other', L("Something else","حاجة تانية"), '✨', 'terhal'],
+];
+const GOALS = [
+  ['known', L("People don't know us yet","الناس لسه مش عارفانا"), ['s1','s2','s4']],
+  ['sales', L("We need more sales or bookings","محتاجين مبيعات أو حجوزات أكتر"), ['s7','s3','s4']],
+  ['content', L("We need steady content","محتاجين محتوى منتظم"), ['s3','s5']],
+  ['launch', L("We have a launch coming","عندنا إطلاق جديد"), ['s4','s5','s7']],
+  ['site', L("We need a website","محتاجين موقع"), ['s6']],
+  ['team', L("Our team needs direction","فريقنا محتاج توجيه"), ['s8','s1']],
+];
+const BUDGETS = [L("Not sure yet","لسه مش متأكد"), L("Under 20k EGP / month","أقل من 20 ألف جنيه شهرياً"), L("20k – 60k EGP / month","20 – 60 ألف جنيه شهرياً"), L("60k+ EGP / month","أكتر من 60 ألف جنيه شهرياً")];
+const brief = { step: 0, ind: null, goals: [], budget: 0, name: '', company: '' };
+const BQ = L("Build your brief","اعمل بريفك");
+function recommend(){
+  const score = {}; brief.goals.forEach(g => GOALS.find(x => x[0] === g)[2].forEach((s, k) => score[s] = (score[s] || 0) + 3 - k));
+  return Object.keys(score).sort((a, b) => score[b] - score[a]).slice(0, 3);
+}
+function briefMessage(){
+  const ind = INDS.find(x => x[0] === brief.ind), ar = lang === 'ar';
+  const lines = ar
+    ? ['أهلاً Planet 👋', `أنا ${brief.name || '—'}${brief.company ? ' من ' + brief.company : ''}.`, `المجال: ${ind ? ind[1].ar : '—'}`,
+       `اللي محتاجينه: ${brief.goals.map(g => GOALS.find(x => x[0] === g)[1].ar).join('، ') || '—'}`, `الخدمات المقترحة: ${recommend().map(id => POIS.find(p => p.id === id).name.ar).join('، ')}`, `الميزانية: ${BUDGETS[brief.budget].ar}`, '(من كوكب Planet)']
+    : ['Hi Planet 👋', `I'm ${brief.name || '—'}${brief.company ? ' from ' + brief.company : ''}.`, `Industry: ${ind ? ind[1].en : '—'}`,
+       `What we need: ${brief.goals.map(g => GOALS.find(x => x[0] === g)[1].en).join(', ') || '—'}`, `Suggested services: ${recommend().map(id => POIS.find(p => p.id === id).name.en).join(', ')}`, `Budget: ${BUDGETS[brief.budget].en}`, '(sent from the Planet game)'];
+  return lines.join('\n');
+}
+EXTRA.brief = () => {
+  const ar = lang === 'ar', steps = 4, st = brief.step;
+  const bar = `<div class="qbar"><i style="width:${(st / steps) * 100}%"></i></div>`;
+  const nav = (canNext, label) => `<div class="qnav">${st ? `<button type="button" class="qback">${ar ? '← رجوع' : '← Back'}</button>` : '<span></span>'}
+      <button type="button" class="qnext" ${canNext ? '' : 'disabled'}>${label || (ar ? 'التالي ←' : 'Next →')}</button></div>`;
+  let body = '';
+  if (st === 0) body = `<p class="ex-lead">${ar ? 'شغلك في أنهي مجال؟' : 'What field are you in?'}</p>
+    <div class="opts">${INDS.map(([id, n, ic]) => `<button type="button" class="opt ${brief.ind === id ? 'on' : ''}" data-ind="${id}"><span>${ic}</span>${t(n)}</button>`).join('')}</div>${nav(!!brief.ind)}`;
+  if (st === 1) body = `<p class="ex-lead">${ar ? 'إيه اللي محتاجه دلوقتي؟ (اختار أكتر من واحدة)' : 'What do you need right now? (pick any)'}</p>
+    <div class="opts col">${GOALS.map(([id, n]) => `<button type="button" class="opt ${brief.goals.includes(id) ? 'on' : ''}" data-goal="${id}"><span>${brief.goals.includes(id) ? '✓' : '+'}</span>${t(n)}</button>`).join('')}</div>${nav(brief.goals.length > 0)}`;
+  if (st === 2) body = `<p class="ex-lead">${ar ? 'الميزانية التقريبية؟' : 'Rough budget?'}</p>
+    <div class="opts col">${BUDGETS.map((b, k) => `<button type="button" class="opt ${brief.budget === k ? 'on' : ''}" data-bud="${k}"><span>${'💰'.repeat(Math.max(1, k))}</span>${t(b)}</button>`).join('')}</div>${nav(true)}`;
+  if (st === 3) body = `<p class="ex-lead">${ar ? 'وأخيراً، نكلّم مين؟' : 'Last one — who do we talk to?'}</p>
+    <label class="fld">${ar ? 'اسمك' : 'Your name'}<input id="bname" value="${(brief.name || '').replace(/"/g,'&quot;')}" autocomplete="name"></label>
+    <label class="fld">${ar ? 'اسم الشركة أو البراند' : 'Company or brand'}<input id="bco" value="${(brief.company || '').replace(/"/g,'&quot;')}" autocomplete="organization"></label>${nav(true, ar ? 'شوف النتيجة ✨' : 'See my plan ✨')}`;
+  if (st === 4){
+    const rec = recommend(), ind = INDS.find(x => x[0] === brief.ind), like = WORK.find(w => w.id === ind[3]) || WORK[0], msg = briefMessage();
+    body = `<p class="ex-lead">${ar ? `${brief.name ? brief.name + '، ' : ''}دي الخطة اللي نقترحها:` : `${brief.name ? brief.name + ', ' : ''}here is what we'd suggest:`}</p>
+      <div class="recs">${rec.map((id, k) => { const p = POIS.find(x => x.id === id); return `<div class="rec" style="--d:${k * 140}ms"><span class="n">${p.n}</span><b>${t(p.name)}</b><small>${t(p.lines[0])}</small></div>`; }).join('')}</div>
+      <h4>${ar ? 'عميل زيك' : 'A client like you'}</h4>
+      <button type="button" class="like" data-case="${like.id}"><img src="img/${like.imgs[0]}" alt=""><span><b>${t(like.name)}</b><small>${like.sum ? t(like.sum) : t(like.ind)}</small></span></button>
+      <div class="sendrow">
+        <a class="ex-cta wa" target="_blank" rel="noopener" href="https://wa.me/201203101104?text=${encodeURIComponent(msg)}">💬 ${ar ? 'ابعت البريف على واتساب' : 'Send on WhatsApp'}</a>
+        <a class="ex-cta light" href="mailto:info@theplanetco.com?subject=${encodeURIComponent(ar ? 'بريف جديد' : 'New brief')}&body=${encodeURIComponent(msg)}">✉️ ${ar ? 'أو بالإيميل' : 'or by email'}</a>
+        <button type="button" class="qback">${ar ? 'عدّل إجاباتي' : 'Edit answers'}</button>
+      </div>`;
+  }
+  shell(BQ, ar ? `خطوة ${Math.min(st + 1, 5)} من 5` : `Step ${Math.min(st + 1, 5)} of 5`, bar + `<div class="qstep">${body}</div>`);
+  const B = $('exbody'), redraw = () => { Sfx.click(); xRender(); };
+  B.querySelectorAll('[data-ind]').forEach(b => b.onclick = () => { brief.ind = b.dataset.ind; brief.step = 1; redraw(); });
+  B.querySelectorAll('[data-goal]').forEach(b => b.onclick = () => { const g = b.dataset.goal; brief.goals = brief.goals.includes(g) ? brief.goals.filter(x => x !== g) : [...brief.goals, g]; redraw(); });
+  B.querySelectorAll('[data-bud]').forEach(b => b.onclick = () => { brief.budget = +b.dataset.bud; brief.step = 3; redraw(); });
+  const keep = () => { if ($('bname')){ brief.name = $('bname').value.trim().slice(0, 60); brief.company = $('bco').value.trim().slice(0, 60); } };
+  B.querySelector('.qnext')?.addEventListener('click', () => { keep(); brief.step++; if (brief.step === 4) Sfx.deliver(); redraw(); });
+  B.querySelectorAll('.qback').forEach(b => b.onclick = () => { keep(); brief.step = st === 4 ? 0 : st - 1; redraw(); });
+  B.querySelectorAll('[data-case]').forEach(b => b.onclick = () => openExhibit('work', b.dataset.case));
+  if (st === 3) setTimeout(() => $('bname')?.focus(), 50);
+};
+
+/* ---------- logo quiz at the academy: which client made this? ---------- */
+const QUIZ_N = 5;
+let quiz = null;
+EXTRA.quiz = () => {
+  const ar = lang === 'ar';
+  if (!quiz){ const pool = xshuffle(WORK.filter(w => w.logo)).slice(0, QUIZ_N);
+    quiz = { qs: pool.map(w => ({ w, opts: xshuffle([w, ...xshuffle(WORK.filter(o => o.logo && o.id !== w.id)).slice(0, 2)]) })), i: 0, score: 0, picked: null }; }
+  if (quiz.i >= QUIZ_N){
+    const best = Math.max(save.q || 0, quiz.score); save.q = best; persist();
+    shell(L("ACADEMY QUIZ","مسابقة الأكاديمية"), `${quiz.score}/${QUIZ_N}`, `
+      <div class="qdone"><span class="big">${quiz.score === QUIZ_N ? '🏆' : quiz.score >= 3 ? '🎉' : '💪'}</span>
+      <p class="ex-lead">${quiz.score === QUIZ_N ? (ar ? 'ممتاز! انت تعرف شغلنا كويس.' : 'Perfect! You know our work.') : (ar ? `جبت ${quiz.score} من ${QUIZ_N}. أعلى نتيجة ليك: ${best}.` : `You got ${quiz.score} of ${QUIZ_N}. Your best: ${best}.`)}</p>
+      <button type="button" class="ex-cta" id="qagain">${ar ? 'العب تاني' : 'Play again'}</button></div>`);
+    if (quiz.score === QUIZ_N) Sfx.finish(); else Sfx.deliver();
+    $('qagain').onclick = () => { quiz = null; Sfx.click(); xRender(); };
+    return;
+  }
+  const q = quiz.qs[quiz.i];
+  shell(L("ACADEMY QUIZ","مسابقة الأكاديمية"), ar ? `السؤال ${quiz.i + 1} من ${QUIZ_N}` : `Question ${quiz.i + 1} of ${QUIZ_N}`, `
+    <div class="qbar"><i style="width:${(quiz.i / QUIZ_N) * 100}%"></i></div>
+    <p class="ex-lead">${ar ? 'الشغل ده لأنهي عميل؟' : 'Which client is this work for?'} <b class="qscore">★ ${quiz.score}</b></p>
+    <div class="qimg"><img src="img/${q.w.imgs[0]}" alt=""></div>
+    <div class="qopts">${q.opts.map(o => `<button type="button" class="qopt ${quiz.picked ? (o.id === q.w.id ? 'right' : o.id === quiz.picked ? 'wrong' : '') : ''}" data-q="${o.id}" ${quiz.picked ? 'disabled' : ''}>
+      <img src="img/logos/${o.logo}.png" alt=""><span>${t(o.name)}</span></button>`).join('')}</div>`);
+  $('exbody').querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+    quiz.picked = b.dataset.q; const ok = quiz.picked === q.w.id; if (ok){ quiz.score++; Sfx.collect(); } else Sfx.land();
+    xRender(); setTimeout(() => { if (state !== 'exhibit' || !quiz) return; quiz.i++; quiz.picked = null; xRender(); }, 1300);
+  });
+};
+
+/* ---------- certificate: a shareable card with the visitor's name and progress ---------- */
+EXTRA.cert = () => {
+  const ar = lang === 'ar';
+  shell(L("YOUR CERTIFICATE","شهادتك"), ar ? 'شارك رحلتك على الكوكب' : 'Share your trip around the planet', `
+    <label class="fld">${ar ? 'اسمك على الشهادة' : 'Your name on the card'}<input id="cname" value="${(store.get('pm-name') || brief.name || '').replace(/"/g,'&quot;')}" maxlength="40"></label>
+    <canvas id="certcv" width="1080" height="1350" class="certcv"></canvas>
+    <div class="sendrow"><button type="button" class="ex-cta" id="cshare">${ar ? '📤 شارك' : '📤 Share'}</button><button type="button" class="ex-cta light" id="csave">${ar ? '⬇️ احفظ الصورة' : '⬇️ Save image'}</button></div>`);
+  const draw = () => drawCert($('certcv'), $('cname').value.trim());
+  $('cname').oninput = () => { store.set('pm-name', $('cname').value.trim()); draw(); };
+  const blob = () => new Promise(r => $('certcv').toBlob(r, 'image/png'));
+  $('csave').onclick = async () => { const a = document.createElement('a'); a.href = URL.createObjectURL(await blob()); a.download = 'planet-certificate.png'; a.click(); Sfx.click(); };
+  $('cshare').onclick = async () => { const f = new File([await blob()], 'planet-certificate.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], text: ar ? 'لفّيت كوكب Planet 🪐 theplanetco.com' : 'I explored Planet 🪐 theplanetco.com' }).catch(() => {});
+    else $('csave').click(); };
+  const logo = new Image(); logo.onload = draw; logo.src = 'logo.png'; drawCert.logo = logo; draw();
+};
+function drawCert(cv, name){
+  const x = cv.getContext('2d'), W = 1080, H = 1350, ar = lang === 'ar';
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#12153A'); g.addColorStop(1, '#2E6BA9'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < 90; i++){ x.fillStyle = `rgba(255,255,255,${0.15 + (i * 37 % 60) / 100})`; x.beginPath(); x.arc((i * 263) % W, (i * 151) % 700, (i % 3) + 1, 0, 7); x.fill(); }
+  x.fillStyle = '#5E9F5E'; x.beginPath(); x.arc(W / 2, H + 420, 900, 0, 7); x.fill(); x.strokeStyle = '#12153A'; x.lineWidth = 14; x.stroke();
+  x.fillStyle = '#F4F7FC'; x.strokeStyle = '#12153A'; x.lineWidth = 10; x.beginPath(); x.roundRect ? x.roundRect(90, 230, 900, 760, 28) : x.rect(90, 230, 900, 760); x.fill(); x.stroke();
+  if (drawCert.logo && drawCert.logo.complete && drawCert.logo.naturalWidth) x.drawImage(drawCert.logo, W / 2 - 60, 110, 120, 120 * drawCert.logo.naturalHeight / drawCert.logo.naturalWidth);
+  x.textAlign = 'center'; x.direction = ar ? 'rtl' : 'ltr';
+  const font = (w, s) => `${w} ${s}px ${ar ? 'Tajawal' : 'Montserrat'}, sans-serif`;
+  x.fillStyle = '#2E6BA9'; x.font = font(800, 40); x.fillText(ar ? 'شهادة ساعي كوكب Planet' : 'PLANET MESSENGER CERTIFICATE', W / 2, 320);
+  x.fillStyle = '#12153A'; x.font = font(800, 84); x.fillText(name || (ar ? 'ضيف الكوكب' : 'Planet guest'), W / 2, 450);
+  x.font = font(600, 34); x.fillStyle = '#3a4566'; x.fillText(ar ? 'لفّ الكوكب واتعرّف على شغلنا' : 'explored the planet and met our work', W / 2, 520);
+  const stats = [[`${save.d.length}/8`, ar ? 'بريفات' : 'briefs'], [`${save.p.length}/${N_POI}`, ar ? 'أماكن' : 'places'], [`${save.s.length}/40`, ar ? 'نجوم' : 'stars'], [`${save.q || 0}/${QUIZ_N}`, ar ? 'المسابقة' : 'quiz']];
+  stats.forEach(([n, l], k) => { const cx = 210 + k * 220; x.fillStyle = '#F2C94C'; x.beginPath(); x.arc(cx, 700, 92, 0, 7); x.fill(); x.lineWidth = 8; x.stroke();
+    x.fillStyle = '#12153A'; x.font = '900 46px Orbitron, Montserrat, sans-serif'; x.fillText(n, cx, 712); x.font = font(700, 30); x.fillText(l, cx, 840); });
+  x.font = font(700, 30); x.fillStyle = '#2E6BA9'; x.fillText(new Date().toLocaleDateString(ar ? 'ar-EG' : 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' }), W / 2, 930);
+  x.fillStyle = '#F4F7FC'; x.font = '800 40px Montserrat, sans-serif'; x.fillText('game.theplanetco.com', W / 2, 1260);
+}
+
+/* ---------- WhatsApp from anywhere, telling us where on the planet you are ---------- */
+$('wa').onclick = () => {
+  const near = typeof pDir !== 'undefined' && pois.length ? pois[poiDist(pDir)[1]] : null;
+  const msg = lang === 'ar' ? `أهلاً Planet 👋 أنا بلعب على الكوكب${near ? ` وواقف عند ${near.name.ar}` : ''} وعايز أتكلم معاكم.` : `Hi Planet 👋 I'm on your planet${near ? ` at the ${near.name.en}` : ''} and I'd like to talk.`;
+  Sfx.click(); window.open('https://wa.me/201203101104?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+};
+$('dn').onclick = () => { dnMode = { auto: isNight() ? 'day' : 'night', day: 'night', night: 'auto' }[dnMode]; store.set('pm-dn', dnMode); applyDayNight(); Sfx.click();
+  mini(dnMode === 'auto' ? (lang === 'ar' ? '🕐 حسب ساعتك' : '🕐 Following your clock') : dnMode === 'night' ? (lang === 'ar' ? '🌙 ليل' : '🌙 Night') : (lang === 'ar' ? '☀️ نهار' : '☀️ Day')); };
+
+Object.assign(EXHIBITS, EXTRA);

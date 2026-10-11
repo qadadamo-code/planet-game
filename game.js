@@ -71,7 +71,7 @@ const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1400);
 scene.add(camera);
 const camLight = new THREE.DirectionalLight(0xffffff, 0.42); camLight.position.set(-4, 6, 10); camera.add(camLight);
 const sunLight = new THREE.DirectionalLight(0xFFF1D6, 0.38); sunLight.position.set(-320, 220, -420); scene.add(sunLight);
-scene.add(new THREE.HemisphereLight(0xE4F0FF, 0x6F8E6A, 0.45));
+const hemi = new THREE.HemisphereLight(0xE4F0FF, 0x6F8E6A, 0.45); scene.add(hemi);
 
 const grad = new THREE.DataTexture(new Uint8Array([120,195,255]), 3, 1, THREE.LuminanceFormat);
 grad.minFilter = grad.magFilter = THREE.NearestFilter; grad.needsUpdate = true;
@@ -215,9 +215,27 @@ function buildSky(){
       const g = x.createRadialGradient(px,py-r*0.2,0,px,py,r); g.addColorStop(0,'rgba(255,255,255,.9)'); g.addColorStop(.7,'rgba(255,255,255,.6)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle = g; x.beginPath(); x.arc(px,py,r,0,7); x.fill(); }
     x.fillStyle = 'rgba(150,185,220,.18)'; x.fillRect(cx - w*0.5, cy + w*0.06, w, 3); };
   for (let i=0;i<14;i++) puff(rnd()*2048, 360 + rnd()*280, 140 + rnd()*200);
-  scene.add(new THREE.Mesh(new THREE.SphereGeometry(700, 48, 24), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), side: THREE.BackSide, depthWrite: false, fog: false })));
+  skyMesh = new THREE.Mesh(new THREE.SphereGeometry(700, 48, 24), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), side: THREE.BackSide, depthWrite: false, fog: false })); scene.add(skyMesh);
   const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xFFF4D8, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
-  sun.position.set(-320, 220, -420); sun.scale.set(260,260,1); scene.add(sun);
+  sun.position.set(-320, 220, -420); sun.scale.set(260,260,1); scene.add(sun); sunSprite = sun;
+  // night sky stars, only shown after dark
+  const n = 900, arr = new Float32Array(n*3); for (let i=0;i<n;i++){ const d = randDir().multiplyScalar(640); arr.set([d.x,d.y,d.z], i*3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  nightStars = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xFFFFFF, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, depthWrite: false })); nightStars.visible = false; scene.add(nightStars);
+}
+let skyMesh = null, sunSprite = null, nightStars = null, lampHalos = [];
+/* day or night from the visitor's own clock (19:00–06:00 is night); the 🌙 button overrides it */
+let dnMode = store.get('pm-dn') || 'auto';
+function isNight(){ if (dnMode !== 'auto') return dnMode === 'night'; const h = new Date().getHours(); return h >= 19 || h < 6; }
+function applyDayNight(){
+  const n = isNight();
+  if (skyMesh) skyMesh.material.color.set(n ? 0x2A3466 : 0xFFFFFF);
+  if (sunSprite){ sunSprite.material.color.set(n ? 0xCFE0FF : 0xFFF4D8); sunSprite.scale.setScalar(n ? 90 : 260); }
+  if (nightStars) nightStars.visible = n;
+  scene.background.set(n ? 0x141B3D : 0x8FBCE3); scene.fog.color.set(n ? 0x1E2752 : 0xA6CBEA);
+  hemi.intensity = n ? 0.26 : 0.45; sunLight.intensity = n ? 0.1 : 0.38; sunLight.color.set(n ? 0x9DB4FF : 0xFFF1D6); camLight.intensity = n ? 0.34 : 0.42;
+  lampHalos.forEach(h => { h.material.opacity = n ? 0.9 : 0.3; h.scale.setScalar(n ? 2.6 : 1.4); });
+  const b = $('dn'); if (b) b.textContent = dnMode === 'auto' ? (n ? '🌙' : '☀️') : dnMode === 'night' ? '🌙' : '☀️';
 }
 const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32,32,0,32,32,32); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.35,'rgba(255,255,255,.45)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); })();
 
@@ -465,13 +483,38 @@ function buildPois(){
 function buildRoadside(){
   // street lamps + benches along the roads
   EDGES.forEach(([ia,ib], ei) => {
-    const a = poiDirs[ia], b = poiDirs[ib], n = edgeN[ei], L = a.angleTo(b)*R, steps = Math.floor(L/12);
+    const a = poiDirs[ia], b = poiDirs[ib], n = edgeN[ei], L = a.angleTo(b)*R, steps = Math.max(3, Math.floor(L/12));
     for (let k=1;k<steps;k++){ const tt = k/steps, dir = a.clone().lerp(b, tt).normalize(); if (poiDist(dir)[0] < 7) continue;
       const side = k % 2 ? 1 : -1, p = dir.clone().addScaledVector(n, side*1.75/R).normalize();
       const l = lamp(); placeAt(l, p); faceToward(l, dir.clone().multiplyScalar(R)); l.rotateY(-Math.PI/2); bake(l); addObstacle(p, 0.25); lampsList.push(p);
     }
   });
 }
+
+const boardTex = {};
+function buildBillboards(){
+  const loader = new THREE.TextureLoader(); let k = 0;
+  EDGES.forEach(([ia,ib], ei) => {
+    const a = poiDirs[ia], b = poiDirs[ib], L = a.angleTo(b)*R; if (L < 22) return;
+    const w = WORK[k++ % WORK.length], side = ei % 2 ? 1 : -1;
+    const mid = a.clone().lerp(b, 0.5).normalize(), p = mid.clone().addScaledVector(edgeN[ei], side*3.4/R).normalize();
+    if (!clearOf(p, 8, 2.2, 1.6)) return;
+    const g = new THREE.Group();
+    [-1.2, 1.2].forEach(x => { const post = mesh(new THREE.CylinderGeometry(0.09,0.11,2.2,6), 0x12153A, 0); post.position.set(x,1.1,0); g.add(post); });
+    const frame = mesh(new THREE.BoxGeometry(3.5,2.4,0.18), 0xF4F7FC); frame.position.y = 3.3; g.add(frame);
+    const plate = mesh(new THREE.BoxGeometry(2.2,0.42,0.2), 0x12153A, 0); plate.position.y = 1.86; g.add(plate);
+    const url = 'img/' + w.imgs[0], tex = boardTex[url] || (boardTex[url] = loader.load(url));
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(3.2,2.12), new THREE.MeshBasicMaterial({ map: tex })); face.position.set(0,3.3,0.1); face.userData.dyn = true; g.add(face);
+    const back = face.clone(); back.rotation.y = Math.PI; back.position.z = -0.1; back.userData.dyn = true; g.add(back);
+    const lab = new THREE.Mesh(new THREE.PlaneGeometry(2.1,0.36), new THREE.MeshBasicMaterial({ map: boardLabel(w) })); lab.position.set(0,1.86,0.11); lab.userData.dyn = true; g.add(lab);
+    placeAt(g, p); faceToward(g, mid.clone().multiplyScalar(R)); bake(g);
+    planet.children.slice(-3).forEach(o => cullList.push(o));
+    addObstacle(p, 1.4); talkables.push({ d: p, r: 3.4, kind: 'board', ref: w });
+  });
+}
+function boardLabel(w){ const c = document.createElement('canvas'); c.width = 512; c.height = 88; const x = c.getContext('2d');
+  x.fillStyle = '#12153A'; x.fillRect(0,0,512,88); x.fillStyle = '#F2C94C'; x.font = '800 44px Tajawal, Montserrat, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(w.name.en.toUpperCase(), 256, 46); return new THREE.CanvasTexture(c); }
 
 function buildNature(){
   const okLand = (d, poi = 9, road = 2.4) => { const s = terrainInfo(d); return s.h > SEA + 0.25 && s.n < 0.45 && s.pd > poi && s.rd > road ? s : null; };
@@ -711,7 +754,10 @@ function renderJournal(){
   stat.innerHTML = `<div><b>${save.d.length}/8</b>${t(UI.briefsTitle)}</div><div><b>${save.p.length}/${N_POI}</b>${t(UI.placesTitle)}</div><div><b>${save.s.length}/40</b>${t(UI.starsTitle)}</div>`;
   body.appendChild(stat);
   if (jtab === 'help'){ const h = document.createElement('div'); h.className = 'help'; h.innerHTML = t(UI.help); body.appendChild(h);
-    const r = document.createElement('button'); r.className = 'go'; r.textContent = lang === 'ar' ? 'ابدأ من الأول (امسح التقدّم)' : 'Start over (clear progress)'; r.onclick = () => { store.set('pm-save', '{}'); location.reload(); }; body.appendChild(r); return; }
+    const r = document.createElement('button'); r.className = 'go'; r.textContent = lang === 'ar' ? 'ابدأ من الأول (امسح التقدّم)' : 'Start over (clear progress)'; r.onclick = () => { store.set('pm-save', '{}'); location.reload(); };
+    const c = document.createElement('button'); c.className = 'go'; c.textContent = lang === 'ar' ? '🏅 شهادتي' : '🏅 My certificate'; c.onclick = () => { toggleJournal(); openExhibit('cert'); };
+    const bq = document.createElement('button'); bq.className = 'go'; bq.textContent = lang === 'ar' ? '📝 اعمل بريفك' : '📝 Build your brief'; bq.onclick = () => { toggleJournal(); openExhibit('brief'); };
+    body.append(c, bq, r); return; }
   const list = jtab === 'briefs' ? pois.filter(p => p.svc) : pois;
   list.forEach(p => { const done = jtab === 'briefs' ? p.done : save.p.includes(p.i);
     const it = document.createElement('div'); it.className = 'item' + (done ? ' done' : '');
@@ -719,7 +765,14 @@ function renderJournal(){
     it.innerHTML = `<span class="ic">${done ? '✓' : (p.n || '•')}</span><span class="tx">${known ? t(p.name) : '???'}<small>${known ? t(p.lines[0]).slice(0, 90) : (lang === 'ar' ? 'لسه ما اكتشفتهوش' : 'Not discovered yet')}</small></span>`;
     const go = document.createElement('button'); go.className = 'go'; go.type = 'button'; go.textContent = t(UI.guideMe);
     go.onclick = () => { guide = p; Sfx.click(); toggleJournal(); mini(`${t(UI.guide)}: ${known ? t(p.name) : '???'}`); };
-    it.appendChild(go); body.appendChild(it); });
+    it.appendChild(go);
+    if (known && jtab === 'places'){ const fly = document.createElement('button'); fly.className = 'go van'; fly.type = 'button'; fly.textContent = lang === 'ar' ? '🚐 وصّلني' : '🚐 Take me';
+      fly.onclick = () => { toggleJournal(); travelTo(p); }; it.appendChild(fly); } body.appendChild(it); });
+}
+function travelTo(p){
+  const from = player.position.clone(); spawn(p); Sfx.jump();
+  burst(from, 0xF2C94C, 40, 4, 0.8); setTimeout(() => burst(pDir.clone().multiplyScalar(R + 1), 0x8FB4E3, 50, 5, 1), 60);
+  mini(`🚐 ${t(p.name)}`); guide = null;
 }
 function toast(text, sub){ const el = document.createElement('div'); el.className = 'toast'; el.textContent = text; if (sub){ const s = document.createElement('small'); s.textContent = sub; el.appendChild(s); } document.body.appendChild(el); setTimeout(() => el.remove(), 1900); }
 function mini(text){ document.querySelectorAll('.mini').forEach(e => e.remove()); const el = document.createElement('div'); el.className = 'mini'; el.textContent = text; document.body.appendChild(el); setTimeout(() => el.remove(), 2700); }
@@ -757,6 +810,7 @@ function act(){
 $('prompt').onclick = () => act();
 function interact(tk){
   if (tk.kind === 'stone'){ const s = STONES[tk.ref][lang]; return talk(L(STONES[tk.ref].en[0], STONES[tk.ref].ar[0]), [L(STONES[tk.ref].en[1], STONES[tk.ref].ar[1])], true); }
+  if (tk.kind === 'board') return openExhibit('work', tk.ref.id);
   if (tk.kind === 'walker'){ tk.ref.pause = 4; return talk(L('Townsperson', 'واحد من سكان الكوكب'), [tk.ref.line], true); }
   const p = tk.ref;
   if (p.svc && !p.done){
@@ -801,8 +855,8 @@ document.querySelectorAll('.copy').forEach(b => b.onclick = async () => {
 /* ---------- player state ---------- */
 const pDir = V(), pFwd = V(), camFwd = V();
 let jumpReq = false, jy = 0, vy = 0, grounded = true, walkT = 0, animSpeed = 0, lastStepSign = 1, introT = 0;
-function spawn(){
-  const hq = pois[0], e = EDGES[ADJ[0][0]], nb = e[0] === 0 ? e[1] : e[0];
+function spawn(hq = pois[0]){
+  const e = EDGES[ADJ[hq.i][0]], nb = e[0] === hq.i ? e[1] : e[0];
   const tow = poiDirs[nb].clone().sub(hq.dir); tow.addScaledVector(hq.dir, -tow.dot(hq.dir)).normalize();
   const side = V().crossVectors(hq.dir, tow).normalize();
   pDir.copy(hq.dir).addScaledVector(tow.clone().multiplyScalar(0.55).add(side.multiplyScalar(0.84)).normalize(), (hq.r + 4.5)/R).normalize();
@@ -950,8 +1004,8 @@ function frame(now){
     if (state === 'play'){
       near = findNear();
       $('prompt').hidden = !near;
-      if (near){ const nm = near.kind === 'poi' ? t(near.ref.name) : near.kind === 'stone' ? t(L(STONES[near.ref].en[0], STONES[near.ref].ar[0])) : t(L('Townsperson','واحد من السكان'));
-        $('promptText').textContent = `${near.kind === 'stone' ? t(UI.visit) : t(UI.talk)} ${nm}`; }
+      if (near){ const nm = near.kind === 'poi' ? t(near.ref.name) : near.kind === 'stone' ? t(L(STONES[near.ref].en[0], STONES[near.ref].ar[0])) : near.kind === 'board' ? t(near.ref.name) : t(L('Townsperson','واحد من السكان'));
+        $('promptText').textContent = `${near.kind === 'stone' ? t(UI.visit) : near.kind === 'board' ? (lang === 'ar' ? 'شوف شغل' : 'See work for') : t(UI.talk)} ${nm}`; }
       // discovery
       const [pd, pi] = poiDist(pDir);
       if (pd < 11 && !save.p.includes(pi)){ save.p.push(pi); persist(); updateHud(); Sfx.discover(); mini(`📍 ${t(UI.found)}: ${t(pois[pi].name)}`); }
@@ -996,9 +1050,9 @@ function introDone(){
   await Promise.race([Promise.all([document.fonts.load('900 60px Orbitron'), document.fonts.load('700 50px Tajawal')]), new Promise(r => setTimeout(r, 2500))]);
   await loadModels(p => setP(p*0.55)); setP(0.6); await nextFrame();
   buildSky(); buildTerrain(); setP(0.72); await nextFrame();
-  buildPois(); buildRoadside(); setP(0.8); await nextFrame();
+  buildPois(); buildRoadside(); buildBillboards(); setP(0.8); await nextFrame();
   buildNature(); buildStars(); buildSkyLife(); spawnTraffic(); setP(0.92); await nextFrame();
-  flush(); planet.children.forEach(o => { if (o.isSprite && !signs.includes(o) && !markers.includes(o)) cullList.push(o); }); spawn(); updateHud(); setP(1);
+  flush(); planet.children.forEach(o => { if (o.isSprite && !signs.includes(o) && !markers.includes(o)) cullList.push(o); if (o.isSprite && o.material.map === glowTex) lampHalos.push(o); }); applyDayNight(); spawn(); updateHud(); setP(1);
   await nextFrame();
   $('loading').style.opacity = 0; setTimeout(() => $('loading').hidden = true, 600);
   $('title').hidden = false; state = 'title'; $('begin').focus();
