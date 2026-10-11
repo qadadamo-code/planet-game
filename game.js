@@ -771,7 +771,8 @@ function residentLine(c, i){
 }
 function spawnTraffic(){
   for (let i=0;i<3;i++){ const v = makeVan(); planet.add(v); cullList.push(v); vehicles.push({ g: v, e: (i*7) % EDGES.length, s: 3, dir: i%2 ? 1 : -1, speed: 0, max: 6 + rnd()*2, honk: 0 }); }
-  const folks = CLIENTS.filter(c => c.logo); for (let i=0;i<18;i++){ const c = folks[i % folks.length]; const p = person(20 + i, { logo: logoTex(c) }); planet.add(p); cullList.push(p); walkers.push({ g: p, c, e: (i*5+1) % EDGES.length, s: 2 + rnd()*14, dir: i%2 ? 1 : -1, walkT: rnd()*6, line: residentLine(c, i), pause: 0 }); }
+  /* one resident per client — every client walks the planet, none repeated, none left out */
+  CLIENTS.forEach((c, i) => { const p = person(20 + i, { logo: logoTex(c) }); planet.add(p); cullList.push(p); walkers.push({ g: p, c, e: (i*5+1) % EDGES.length, s: 2 + rnd()*14, dir: i%2 ? 1 : -1, walkT: rnd()*6, line: residentLine(c, i), pause: 0 }); });
 }
 function advanceOnGraph(o, step){
   const [ia,ib] = EDGES[o.e], L = poiDirs[ia].angleTo(poiDirs[ib])*R;

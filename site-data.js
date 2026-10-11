@@ -170,7 +170,7 @@ CLIENTS.filter(c => c.cover && !c.work).forEach(c => WORK.push({
 }));
 
 /* real team photos from theplanetco.com/about */
-const TEAM_PHOTOS = ['ahmed-qadada','amira-qadada','aya-alashi','aya-arabi','bassant-ahmed','bassel-mutair','dana-qadada','dima-abdel-aal','hassan-fathi','ibrahem-mahmoud','ibrahim-nasr','jumana-shaheen','mohammed-anan','mohammed-maged','mohammed-qadada','mustafa-hamdy','noreen-nabil','shahinda-hamed','tareq-nasr','yara-ameen','yomna-fathi','youstina-kamel','youstina-nassef'];
+const TEAM_PHOTOS = ['ahmed-qadada','amira-qadada','aya-alashi','aya-arabi','bassant-ahmed','bassel-mutair','dana-qadada','dima-abdel-aal','hassan-fathi','ibrahem-mahmoud','ibrahim-nasr','jumana-shaheen','mohammed-anan','mohammed-maged','mohammed-qadada','mustafa-hamdy','noreen-nabil','shahinda-hamed','tareq-nasr','yara-ameen','yomna-fathi','yousef-khaled','youstina-kamel','youstina-nassef'];
 TEAM.forEach(m => { const slug = m.name.en.toLowerCase().replace(/\s+/g, '-'); if (TEAM_PHOTOS.includes(slug)) m.photo = `img/team/${slug}.jpg`; });
 
 /* every client's delivered work, as published on theplanetco.com/clients/<slug> (folder: image count) */
@@ -185,7 +185,7 @@ function clientGallery(c){
 const DISTRICTS = {
   food:   { kind: 'resto',  icon: '🍽️', color: 0xE76F51, name: L("Restaurants & Cafés","حي المطاعم والكافيهات"), clients: ['qidra','aljamalla','westeros','alshawa','bossco'] },
   health: { kind: 'clinic', icon: '🩺', color: 0x3E8E7E, name: L("Clinics & Healthcare","حي العيادات والصحة"),     clients: ['gms','value','tadawa','implant-gate','seha-practo'] },
-  travel: { kind: 'kiosk',  icon: '✈️', color: 0x5FA0E6, name: L("Travel","حي السفر"),                           clients: ['terhal','belalhanif'] },
+  travel: { kind: 'kiosk',  icon: '✈️', color: 0x5FA0E6, name: L("Travel","حي السفر"),                           clients: ['terhal','belalhanif','fly29'] },
   money:  { kind: 'glass',  icon: '🏙️', color: 0x2E6BA9, name: L("Real estate & Finance","حي العقارات والمال"),   clients: ['mavirealty','unitedinvestment'] },
   shop:   { kind: 'shop',   icon: '🛍️', color: 0xF2C94C, name: L("Brands & Retail","حي البراندات"),             clients: ['uber','lorya','jagal','alashi','best-one'] },
   pro:    { kind: 'office', icon: '⚖️', color: 0x8E6BC2, name: L("Services","حي الخدمات"),                       clients: ['wakeelak','alzaytouna','mo-adel'] },
