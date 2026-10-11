@@ -196,3 +196,8 @@ Object.entries(DISTRICTS).forEach(([dk, D]) => D.clients.forEach(logo => {
     lines: [L(`Welcome to ${c.name.en} — one of the brands Planet works with, here in the ${D.name.en} district.`,
               `أهلاً في ${c.name.ar} — واحدة من العلامات اللي Planet بتشتغل معاها، هنا في ${D.name.ar}.`)] });
 }));
+
+/* clients' official accounts — only links confirmed to belong to that exact brand. Add the rest as they're confirmed. */
+const CLIENT_LINKS = {
+  'seha-practo': { instagram: 'https://www.instagram.com/seha.practo/', facebook: 'https://www.facebook.com/sehapracto/', website: 'https://www.sehapracto.com/' },
+};

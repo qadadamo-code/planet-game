@@ -134,21 +134,31 @@ const EXHIBITS = {
   },
 
   contact(){
+    const ar = lang === 'ar';
+    const C = [
+      ['💬', 'WhatsApp', '+20 120 310 1104', 'https://wa.me/201203101104', 'wa'],
+      ['📞', ar ? 'اتصل بينا' : 'Call us', '+20 120 310 1104', 'tel:+201203101104'],
+      ['✉️', t(UI.email), 'info@theplanetco.com', 'mailto:info@theplanetco.com'],
+      ['🌐', ar ? 'الموقع' : 'Website', 'theplanetco.com', 'https://theplanetco.com'],
+      ['📸', 'Instagram', '@planet4cm', 'https://instagram.com/planet4cm', 'ig'],
+      ['👍', 'Facebook', 'planet4cm', 'https://facebook.com/planet4cm', 'fb'],
+      ['💼', 'LinkedIn', 'planet4cm', 'https://linkedin.com/company/planet4cm', 'li'],
+      ['▶️', 'YouTube', '@planet4cm', 'https://youtube.com/@planet4cm', 'yt'],
+      ['📍', t(UI.studio), t(UI.studioV), 'https://maps.google.com/?q=30.0131,31.4969'],
+    ];
     shell(X.contact, t(UI.finalH), `
       <p class="ex-lead">${t(UI.finalP)}</p>
-      <div class="cgrid">
-        <a href="https://wa.me/201203101104" target="_blank" rel="noopener" style="--d:0ms"><span>💬</span><b>WhatsApp</b><small dir="ltr">+20 120 310 1104</small></a>
-        <a href="mailto:info@theplanetco.com" style="--d:90ms"><span>✉️</span><b>${t(UI.email)}</b><small>info@theplanetco.com</small></a>
-        <a href="https://maps.google.com/?q=30.0131,31.4969" target="_blank" rel="noopener" style="--d:180ms"><span>📍</span><b>${t(UI.studio)}</b><small>${t(UI.studioV)}</small></a>
-        <a href="https://instagram.com/planet4cm" target="_blank" rel="noopener" style="--d:270ms"><span>📸</span><b>Instagram</b><small>@planet4cm</small></a>
-      </div>
-      <a class="ex-cta" href="https://theplanetco.com/contact" target="_blank" rel="noopener">${t(X.start)} →</a>`);
+      <div class="cgrid">${C.map(([ic, n, v, u, k], i) => `<a class="${k || ''}" href="${u}" ${u.startsWith('http') ? 'target="_blank" rel="noopener"' : ''} style="--d:${i * 60}ms"><span>${ic}</span><b>${n}</b><small dir="ltr">${v}</small></a>`).join('')}</div>
+      <p class="ex-note">${t(UI.hours)}: ${t(UI.hoursV)}</p>
+      <div class="sendrow"><button type="button" class="ex-cta" id="tobrief">📝 ${ar ? 'اعمل بريفك في دقيقة' : 'Build your brief in a minute'}</button>
+        <a class="ex-cta light" href="https://theplanetco.com/contact" target="_blank" rel="noopener">${t(X.start)} →</a></div>`);
+    $('tobrief').onclick = () => openExhibit('brief');
   },
 };
 
 /* which showcase each place opens */
 const PLACE_EXHIBIT = { gallery: ['work', 0], fly: ['work', 'fly29'], monument: ['clients'], careers: ['team'], cafe: ['team'],
-  lab: ['products'], academy: ['quiz'], process: ['brief'], observatory: ['about'], lighthouse: ['about'], values: ['about'], hq: ['brief'] };
+  lab: ['products'], academy: ['quiz'], process: ['brief'], observatory: ['about'], lighthouse: ['about'], values: ['about'], hq: ['contact'] };
 function exhibitFor(p){
   if (p.client) return () => openExhibit('client', p.client.logo || p.client.name.en);
   if (p.svc) return () => openExhibit('service', p.id);
@@ -318,6 +328,8 @@ EXTRA.client = key => {
     ${w && w.sum ? `<p class="ex-lead">${t(w.sum)}</p>` : `<p class="ex-lead">${ar ? `شغل اتسلّم لـ${c.name.ar} — من أكتر من 370 علامة اشتغلنا معاها.` : `Selected creatives delivered for ${c.name.en} — one of the 370+ brands we work with.`}</p>`}
     ${w && w.svc.length ? `<div class="chips">${w.svc.map(s2 => `<span>${xsvc(s2)}</span>`).join('')}${w.year ? `<span>${w.year}</span>` : ''}</div>` : ''}
     ${w && w.quote ? `<blockquote>${t(w.quote)}</blockquote>` : ''}
+    ${(() => { const lk = CLIENT_LINKS[c.logo] || {}, ic = { website: ['🌐', ar ? 'الموقع' : 'Website'], instagram: ['📸', 'Instagram'], facebook: ['👍', 'Facebook'], tiktok: ['🎵', 'TikTok'], linkedin: ['💼', 'LinkedIn'], whatsapp: ['💬', 'WhatsApp'] };
+      const ks = Object.keys(ic).filter(k => lk[k]); return ks.length ? `<div class="clinks">${ks.map(k => `<a href="${lk[k]}" target="_blank" rel="noopener">${ic[k][0]} ${ic[k][1]}</a>`).join('')}</div>` : ''; })()}
     <h4>${ar ? `أعمالنا لـ${c.name.ar}` : `Our work for ${c.name.en}`} <small class="cnt">${imgs.length}</small></h4>
     <div class="cgal">${imgs.map((src, k) => `<button type="button" class="cg" data-i="${k}" style="--d:${k * 50}ms"><img src="img/${src}" alt="" loading="lazy"></button>`).join('')}</div>
     <div class="sendrow"><button type="button" class="ex-cta" id="likethis">${ar ? '✨ عايز شغل زي ده؟ اعمل بريفك' : '✨ Want work like this? Build your brief'}</button></div>
@@ -345,3 +357,21 @@ EXTRA.member = id => {
 };
 
 Object.assign(EXHIBITS, EXTRA);
+
+/* ---------- install as an app (Android/desktop: the browser's own prompt; iPhone: the Share-sheet steps) ---------- */
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+let installEvt = null;
+const standalone = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('install').hidden = false; });
+if (isIOS && !standalone) $('install').hidden = false;
+addEventListener('appinstalled', () => { $('install').hidden = true; mini(lang === 'ar' ? '📲 Planet بقى على شاشتك' : '📲 Planet is on your home screen'); });
+$('install').onclick = async () => {
+  Sfx.click();
+  if (installEvt){ installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('install').hidden = true; return; }
+  EXTRA.install = () => shell(L("INSTALL","ثبّت التطبيق"), lang === 'ar' ? 'Planet على شاشتك الرئيسية' : 'Planet on your home screen', `
+    <ol class="steps"><li>${lang === 'ar' ? 'دوس على زرار <b>المشاركة</b> ⬆️ تحت في Safari' : 'Tap the <b>Share</b> ⬆️ button in Safari'}</li>
+    <li>${lang === 'ar' ? 'اختار <b>إضافة إلى الشاشة الرئيسية</b> ➕' : 'Choose <b>Add to Home Screen</b> ➕'}</li>
+    <li>${lang === 'ar' ? 'دوس <b>إضافة</b> — وهتلاقي أيقونة Planet جنب تطبيقاتك' : 'Tap <b>Add</b> — the Planet icon joins your apps'}</li></ol>`);
+  EXHIBITS.install = EXTRA.install; openExhibit('install');
+};

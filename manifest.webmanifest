@@ -1,0 +1,17 @@
+{
+  "name": "Planet — كوكب Planet",
+  "short_name": "Planet",
+  "description": "امشِ على كوكب Planet: شغلنا، عملاؤنا، والفريق — من Planet، وكالة التسويق الإبداعي في القاهرة الجديدة.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#06091A",
+  "theme_color": "#06091A",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

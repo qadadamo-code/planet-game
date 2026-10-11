@@ -1062,11 +1062,11 @@ function updatePlayer(dt, now){
   if (mixer){
     if (moving){ walkAction.timeScale = THREE.MathUtils.lerp(walkAction.timeScale, clamp(animSpeed/4.0, 0.6, 1.9), 1 - Math.exp(-10*dt)); }
     else { walkAction.timeScale = 0; let d = idleTime - walkAction.time; d -= Math.round(d/clipDur)*clipDur; walkAction.time += d * (1 - Math.exp(-10*dt)); }
-    mixer.update(dt); rig.position.y = moving ? 0 : Math.sin(now*2.2)*0.012;
+    mixer.update(dt); rig.position.y = moving ? 0 : Math.sin(now*0.0022)*0.012;   // now is in ms: a slow breath, not a shiver
     if (!grounded) rig.rotation.x = -0.12; else rig.rotation.x *= 0.8;
   } else if (proc.legL){
     const sw = moving ? Math.sin(walkT)*0.6 : 0; proc.legL.rotation.x = sw; proc.legR.rotation.x = -sw; proc.armL.rotation.x = -sw*0.8; proc.armR.rotation.x = sw*0.8;
-    rig.position.y = moving ? Math.abs(Math.cos(walkT))*0.06 : Math.sin(now*2.2)*0.01;
+    rig.position.y = moving ? Math.abs(Math.cos(walkT))*0.06 : Math.sin(now*0.0022)*0.01;
   }
   shadow.position.copy(up).multiplyScalar(R + h + 0.04); shadow.quaternion.setFromUnitVectors(V(0,0,1), up); shadow.scale.setScalar(1 - Math.min(0.5, jy*0.15));
   // camera auto-follow while walking (not right after a manual drag)

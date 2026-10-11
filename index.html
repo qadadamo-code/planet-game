@@ -8,7 +8,13 @@
 <meta property="og:title" content="Planet Messenger">
 <meta property="og:description" content="A tiny walkable planet by Planet — Creative Marketing, New Cairo.">
 <meta name="theme-color" content="#06091A">
-<link rel="icon" href="logo.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Planet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Montserrat:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
@@ -311,6 +317,10 @@ button.ex-cta{font:inherit;font-weight:900}
 .mates{display:flex;flex-wrap:wrap;gap:8px}
 .mates button{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border:2px solid var(--ink);border-radius:999px;background:#fff;font-weight:700}
 .mates img{width:34px;height:34px;border-radius:50%;object-fit:cover}
+.cgrid a.wa{background:#e6f9ee}.cgrid a.ig{background:#fde9f1}.cgrid a.fb{background:#e8effc}.cgrid a.li{background:#e5f1f8}.cgrid a.yt{background:#fde8e6}
+.cgrid small{overflow-wrap:anywhere}
+.clinks{display:flex;gap:8px;flex-wrap:wrap}.clinks a{border:2px solid var(--ink);border-radius:999px;padding:6px 14px;font-weight:700;text-decoration:none;color:var(--ink);background:#fff;box-shadow:2px 2px 0 var(--blue)}
+.steps{margin:0;padding-inline-start:22px;display:grid;gap:12px;font-size:17px;line-height:1.6}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -327,6 +337,7 @@ button.ex-cta{font:inherit;font-weight:900}
 
 <div class="tools">
   <button class="panel tbtn" id="jbtn" type="button" hidden aria-label="Journal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg></button>
+  <button class="panel tbtn" id="install" type="button" hidden aria-label="Install">📲</button>
   <button class="panel tbtn" id="dn" type="button" aria-label="Day / night">☀️</button>
   <button class="panel tbtn" id="snd" type="button" aria-label="Sound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path id="sndwave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path id="sndoff" d="M16 9l6 6M22 9l-6 6" hidden/></svg></button>
   <button class="panel tbtn" id="lang" type="button">EN</button>
