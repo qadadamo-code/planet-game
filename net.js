@@ -31,7 +31,7 @@ function peerTag(peer){
     x.fillStyle = '#F4F7FC'; x.font = '800 44px IBM Plex Sans Arabic, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = lang === 'ar' ? 'rtl' : 'ltr';
     x.fillText('👋 ' + t(visitorName(peer.num, peer.nick)), w/2, 51, w - 30); tx.needsUpdate = true; };
   paint(); peer.paint = paint; langHooks.push(paint);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 7; s.scale.set(w/h*0.42, 0.42, 1); return s;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 7; s.scale.set(w/h*0.42, 0.42, 1); return fitSprite(s, 16, 30);
 }
 
 function addPeer(id, p){
@@ -66,6 +66,7 @@ function onPeerState(p){
   if (riding !== peer.riding){ peer.riding = riding;
     if (riding){ peer.car = makeCar(peer.color, 0xF4F7FC); peer.g.add(peer.car); peer.body.visible = false; peer.tag.position.y = 2.9; }
     else { if (peer.car) peer.g.remove(peer.car); peer.car = null; peer.body.visible = true; peer.tag.position.y = 2.55; } }
+  if (peer.car) setCarStyle(peer.car, !!p.f);
 }
 
 function myState(){
@@ -73,13 +74,13 @@ function myState(){
   const base = { i: netId, n: netNum, c: netColor, k: myNick() };
   if (typeof inSpace !== 'undefined' && inSpace) return { ...base, w: 's', sw: (typeof cur !== 'undefined' && cur) ? cur.id : '' };
   if (typeof inOffice !== 'undefined' && inOffice) return { ...base, w: 'o', o: [+oPos.x.toFixed(2), +oPos.y.toFixed(2), +oYaw.toFixed(2)] };
-  return { ...base, w: 'p', r: riding ? 1 : 0, ps: passengerOf || undefined, p: player.position.toArray().map(v => +v.toFixed(2)), q: player.quaternion.toArray().map(v => +v.toFixed(3)) };
+  return { ...base, w: 'p', r: riding ? 1 : 0, f: riding && car && car.userData.car.future ? 1 : 0, ps: passengerOf || undefined, p: player.position.toArray().map(v => +v.toFixed(2)), q: player.quaternion.toArray().map(v => +v.toFixed(3)) };
 }
 
 function netTick(now){
   if (!netLive) return;
   const s = myState(); if (!s) return;
-  const key = JSON.stringify([s.w, s.p, s.q, s.o, s.r, s.k, s.ps, s.sw]);
+  const key = JSON.stringify([s.w, s.p, s.q, s.o, s.r, s.k, s.ps, s.sw, s.f]);
   const due = key !== netLastKey ? NET.sendMs : NET.idleMs;
   if (now - netLastSend < due) return;
   netLastSend = now; netLastKey = key;
@@ -196,7 +197,7 @@ function placeSpaceRocket(peer, now){
   const w = worlds.find(x => x.id === peer.sw);
   if (!w || w !== cur){ if (peer.space) peer.space.visible = false; return; }
   if (!peer.space){ const g = new THREE.Group(); const r = makeRocket(); r.scale.setScalar(0.55); r.traverse(o => { if (o.userData.pad) o.visible = false; }); g.add(r);
-    const tag = peerTag(peer); tag.scale.multiplyScalar(4); tag.position.y = 5; g.add(tag); scene.add(g); peer.space = g; }
+    const tag = peerTag(peer); tag.position.y = 5; g.add(tag); scene.add(g); peer.space = g; }
   const c = w.obj.getWorldPosition(new THREE.Vector3()), a = now / 4000 + (peer.num % 7);
   peer.space.position.set(c.x + Math.cos(a) * w.r * 2.6, c.y + w.r * 0.9, c.z + Math.sin(a) * w.r * 2.6);
   peer.space.rotation.set(0, -a, 0.5); peer.space.visible = true;
@@ -207,7 +208,7 @@ const QUICK = ['👋', '😂', '❤️', '👍', '🔥', '🚀', '🎉', '😮']
 const chatLog = []; let chatOpen = false, chatUnread = 0, lastChatSent = 0, myBubble = null, myBubbleUntil = 0;
 function bubbleSprite(){
   const cv = document.createElement('canvas'); cv.width = 512; cv.height = 192; const x = cv.getContext('2d'), tx = new THREE.CanvasTexture(cv);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 8; s.scale.set(2.2, 0.82, 1);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 8; s.scale.set(2.2, 0.82, 1); fitSprite(s, 34, 64);
   s.userData.draw = text => { x.clearRect(0, 0, 512, 192);
     x.fillStyle = '#F4F7FC'; x.strokeStyle = '#12153A'; x.lineWidth = 7; x.beginPath(); x.roundRect ? x.roundRect(6, 6, 500, 150, 34) : x.rect(6, 6, 500, 150); x.fill(); x.stroke();
     x.beginPath(); x.moveTo(236, 154); x.lineTo(256, 186); x.lineTo(276, 154); x.fill(); x.stroke(); x.fillRect(238, 146, 36, 10);

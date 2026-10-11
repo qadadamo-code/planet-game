@@ -103,6 +103,23 @@ body.ar .round{font-family:var(--ar);font-size:16px}
 
 /* dialogue */
 #netcount{cursor:pointer;white-space:nowrap}
+#minimap{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));inset-inline-end:14px;width:150px;height:150px;border-radius:50%;padding:0;z-index:21;cursor:pointer;background:transparent;border:0;box-shadow:4px 4px 0 var(--ink)}
+#minimap[hidden],#bigmap[hidden],#futurebtn[hidden]{display:none}
+#futurebtn{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom,0px));padding:8px 16px;font-weight:800;font-size:15px;z-index:24;cursor:pointer;background:linear-gradient(90deg,#7FE8FF,#FF9BE2)}
+#bigmap{display:grid;place-items:center;z-index:45;background:rgba(6,9,26,.72);padding:calc(24px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px))}
+.bm-card{position:relative;width:min(980px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px}
+.bm-x{position:absolute;top:-14px;inset-inline-end:-12px;background:var(--gold);box-shadow:3px 3px 0 var(--ink)}
+.bm-head{display:grid;gap:2px}.bm-head b{font-size:20px}.bm-head small{color:#5B6584;font-size:14px}
+.bm-body{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;min-height:0;overflow:hidden}
+#bigmapc{width:100%;height:auto;aspect-ratio:1;max-height:62vh;justify-self:center}
+.bm-side{display:flex;flex-direction:column;gap:8px;min-height:0}
+#bmsearch{font:inherit;font-size:16px;padding:9px 12px;border:2px solid var(--ink);border-radius:8px;background:#fff;color:var(--ink)}
+#bmlist{overflow:auto;display:grid;gap:4px;max-height:52vh;padding-inline-end:4px}
+#bmlist h5{margin:8px 0 2px;font-size:14px}
+.bm-place{display:flex;align-items:center;gap:8px;font:inherit;font-size:14px;text-align:start;background:#fff;border:2px solid #cfd8ea;border-radius:8px;padding:7px 10px;cursor:pointer;color:var(--ink)}
+.bm-place:hover,.bm-place.on{border-color:var(--ink);background:#FFF3C4}.bm-place i{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);flex:none}.bm-place span{flex:1}.bm-place small{color:#5B6584;font-family:var(--display);font-size:11px}
+@media (max-width:640px){#minimap{top:calc(150px + env(safe-area-inset-top,0px));width:104px;height:104px}.bm-body{grid-template-columns:1fr;overflow:auto}#bigmapc{max-height:42vh}#bmlist{max-height:none}}
+@media (pointer:coarse){#futurebtn{bottom:calc(240px + env(safe-area-inset-bottom,0px))}}
 #chatbtn{position:fixed;right:20px;bottom:calc(92px + env(safe-area-inset-bottom,0px));width:52px;height:52px;border-radius:50%;font-size:24px;display:grid;place-items:center;z-index:23;background:var(--paper);box-shadow:4px 4px 0 var(--ink)}
 #chatbtn i{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;border-radius:11px;background:#E05A5A;color:#fff;font:800 12px/22px var(--display);font-style:normal;border:2px solid var(--ink)}
 #chatbox{position:fixed;right:14px;bottom:calc(154px + env(safe-area-inset-bottom,0px));width:min(340px,calc(100% - 28px));max-height:min(420px,calc(100% - 240px));display:flex;flex-direction:column;z-index:37;padding:10px;gap:8px}
@@ -460,13 +477,14 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js?v=11"></script>
-<script src="site-data.js?v=11"></script>
-<script src="game.js?v=11"></script>
-<script src="exhibit.js?v=11"></script>
-<script src="space.js?v=11"></script>
-<script src="office.js?v=11"></script>
+<script src="content.js?v=12"></script>
+<script src="site-data.js?v=12"></script>
+<script src="game.js?v=12"></script>
+<script src="exhibit.js?v=12"></script>
+<script src="space.js?v=12"></script>
+<script src="office.js?v=12"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="net.js?v=11"></script>
+<script src="net.js?v=12"></script>
+<script src="map.js?v=12"></script>
 </body>
 </html>

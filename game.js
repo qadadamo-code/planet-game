@@ -496,7 +496,7 @@ function buildPois(){
     const sign = null;
     const tall = { glass: 7.2, clinic: 5.2, kiosk: 5.2, hq: 7.4, tower: 7.6, monument: 9.6, lighthouse: 9.2, terminal: 7.2, academy: 6.2, billboard: 6.2 }[p.kind] || 5.4;
     let marker = null;
-    if (p.svc){ marker = new THREE.Sprite(new THREE.SpriteMaterial({ map: markerTex(save.d.includes(p.id)) })); marker.scale.set(1.15,1.15,1); marker.position.y = tall + 1.3; marker.userData.base = tall + 1.3; g.add(marker); markers.push(marker); }
+    if (p.svc){ marker = new THREE.Sprite(new THREE.SpriteMaterial({ map: markerTex(save.d.includes(p.id)) })); marker.scale.set(1.15,1.15,1); marker.position.y = tall + 1.3; marker.userData.base = tall + 1.3; g.add(marker); markers.push(marker); fitSprite(marker, 22, 46); }
     planet.add(g);
     if (p.kind === 'lighthouse') g.traverse(o => { if (o.userData.spin) spinners.push(o); });
     const rec = { ...p, i, dir, pos: dir.clone().multiplyScalar(R), r: r*sc, group: g, npc, marker, sign, done: save.d.includes(p.id) };
@@ -581,16 +581,64 @@ function buildDistrictGates(){
 
 /* ---------- the Planet car and the rocket pad, parked by HQ ---------- */
 const markTex = new THREE.TextureLoader().load('img/mark.png');
-function makeCar(col = 0x2E6BA9, stripeC = 0xF2C94C){
-  const g = new THREE.Group(); g.userData.dyn = true;
-  const body = mesh(new THREE.BoxGeometry(1.5,0.55,2.6), col); body.position.y = 0.55; g.add(body);
-  const cab = mesh(new THREE.BoxGeometry(1.3,0.55,1.4), 0xF4F7FC); cab.position.set(0,1.08,-0.15); g.add(cab);
-  const glass = new THREE.Mesh(new THREE.BoxGeometry(1.32,0.36,1.0), basic(0x8FB4E3)); glass.position.set(0,1.12,-0.1); g.add(glass);
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.52,0.1,2.62), basic(stripeC)); stripe.position.y = 0.72; g.add(stripe);
-  [[-0.72,0.5],[0.72,0.5],[-0.72,-0.85],[0.72,-0.85]].forEach(([x,z]) => { const w = mesh(new THREE.CylinderGeometry(0.32,0.32,0.26,14), 0x12153A, 0); w.rotation.z = Math.PI/2; w.position.set(x,0.32,z); w.userData.wheel = true; g.add(w); });
-  [-0.77, 0.77].forEach(x => { const d = new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.4), new THREE.MeshBasicMaterial({ map: markTex, transparent: true })); d.position.set(x,0.55,0.1); d.rotation.y = x > 0 ? Math.PI/2 : -Math.PI/2; g.add(d); });
-  [-0.45,0.45].forEach(x => { const l = new THREE.Mesh(new THREE.SphereGeometry(0.1,8,6), basic(0xFFF2B0)); l.position.set(x,0.6,1.3); g.add(l); });
+/* cars: a modern hatchback, or a hover car "from the future". The outer group keeps its identity (it is
+   what gets parked, ridden and collided with); the model inside can be swapped with setCarStyle(). */
+function makeCar(col = 0x2E6BA9, stripeC = 0xF2C94C, future = false){
+  const g = new THREE.Group(); g.userData.dyn = true; g.userData.car = { col, stripeC, future: false };
+  setCarStyle(g, future); return g;
+}
+function setCarStyle(g, future){
+  const c = g.userData.car; if (g.userData.model && c.future === future) return;
+  if (g.userData.model) g.remove(g.userData.model);
+  c.future = future; const m = future ? futureCarModel(c.col, c.stripeC) : modernCarModel(c.col, c.stripeC); g.add(m); g.userData.model = m;
+}
+function modernCarModel(col, stripeC){
+  const g = new THREE.Group();
+  // low body with a sloped nose and tail
+  const body = mesh(new THREE.BoxGeometry(1.62, 0.42, 2.9), col); body.position.y = 0.52; g.add(body);
+  const nose = mesh(new THREE.BoxGeometry(1.6, 0.2, 0.9), col, 0); nose.position.set(0, 0.78, 1.0); nose.rotation.x = 0.16; g.add(nose);
+  const sill = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.12, 2.5), basic(0x1A1D2E)); sill.position.y = 0.33; g.add(sill);
+  // tapered glass cabin (a four-sided frustum turned square to the car)
+  const cabG = new THREE.CylinderGeometry(0.62, 0.86, 0.48, 4, 1); cabG.rotateY(Math.PI/4); cabG.scale(1.12, 1, 1.7);
+  const cab = mesh(cabG, 0x1C2440); cab.position.set(0, 0.96, -0.2); g.add(cab);
+  const shine = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.04, 0.5), new THREE.MeshBasicMaterial({ color: 0xBFE3FF, transparent: true, opacity: 0.55 })); shine.position.set(0, 1.21, -0.1); g.add(shine);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.05, 1.05), basic(col)); roof.position.set(0, 1.215, -0.25); g.add(roof);
+  // racing stripe, spoiler, mirrors
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 2.92), basic(stripeC)); stripe.position.set(0, 0.74, 0); g.add(stripe);
+  const sp = mesh(new THREE.BoxGeometry(1.5, 0.06, 0.28), 0x1A1D2E, 0); sp.position.set(0, 0.98, -1.35); g.add(sp);
+  [-0.5, 0.5].forEach(x => { const st = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.22, 0.05), basic(0x1A1D2E)); st.position.set(x, 0.86, -1.33); g.add(st); });
+  [-0.86, 0.86].forEach(x => { const mr = mesh(new THREE.BoxGeometry(0.12, 0.1, 0.18), col, 0); mr.position.set(x, 0.92, 0.38); g.add(mr); });
+  // LED light bars
+  const head = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.06, 0.04), basic(0xEAF6FF)); head.position.set(0, 0.62, 1.46); g.add(head);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.07, 0.04), basic(0xFF3B4E)); tail.position.set(0, 0.66, -1.46); g.add(tail);
+  // the Planet mark on the doors
+  [-0.82, 0.82].forEach(x => { const d = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.36), new THREE.MeshBasicMaterial({ map: markTex, transparent: true })); d.position.set(x, 0.53, 0.05); d.rotation.y = x > 0 ? Math.PI/2 : -Math.PI/2; g.add(d); });
+  // wheels: tyre + alloy rim
+  [[-0.78, 0.95], [0.78, 0.95], [-0.78, -0.95], [0.78, -0.95]].forEach(([x, z]) => { const w = new THREE.Group(); w.position.set(x, 0.34, z); w.userData.wheel = true;
+    const ty = mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.26, 16), 0x16171F, 0); ty.rotation.z = Math.PI/2; w.add(ty);
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.27, 6), basic(0xC9D2E3)); rim.rotation.z = Math.PI/2; w.add(rim); g.add(w); });
   return g;
+}
+function futureCarModel(col, stripeC){
+  const g = new THREE.Group(), hov = new THREE.Group(); g.add(hov); g.userData.hover = hov;
+  // a sleek pod body hovering on light
+  const bodyG = new THREE.SphereGeometry(1, 20, 12); bodyG.scale(0.85, 0.32, 1.55);
+  const body = mesh(bodyG, col); body.position.y = 0.72; hov.add(body);
+  const canopyG = new THREE.SphereGeometry(0.62, 18, 10, 0, Math.PI*2, 0, Math.PI/2); canopyG.scale(1, 0.75, 1.5);
+  const canopy = new THREE.Mesh(canopyG, new THREE.MeshBasicMaterial({ color: 0x7FE8FF, transparent: true, opacity: 0.55 })); canopy.position.set(0, 0.86, -0.1); hov.add(canopy);
+  [-1, 1].forEach(sx => { const fin = mesh(new THREE.BoxGeometry(0.06, 0.42, 0.6), stripeC, 0); fin.position.set(sx*0.62, 0.98, -1.2); fin.rotation.z = sx*0.35; hov.add(fin);
+    const neon = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 2.2), basic(0x5FF2FF)); neon.position.set(sx*0.84, 0.7, 0); hov.add(neon); });
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.05), basic(0xEAF6FF)); nose.position.set(0, 0.68, 1.53); hov.add(nose);
+  const thr = new THREE.Mesh(new THREE.CircleGeometry(0.22, 16), basic(0xFF6BD6)); thr.position.set(0, 0.72, -1.56); thr.rotation.y = Math.PI; hov.add(thr);
+  const logo = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.32), new THREE.MeshBasicMaterial({ map: markTex, transparent: true })); logo.position.set(0, 0.97, 0.9); logo.rotation.x = -1.2; hov.add(logo);
+  // glowing hover pads underneath
+  [[-0.5, 0.8], [0.5, 0.8], [-0.5, -0.8], [0.5, -0.8]].forEach(([x, z]) => { const pad = new THREE.Mesh(new THREE.CircleGeometry(0.24, 16), new THREE.MeshBasicMaterial({ color: 0x5FF2FF, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+    pad.rotation.x = Math.PI/2; pad.position.set(x, 0.42, z); hov.add(pad); });
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0x5FF2FF, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.55 })); glow.scale.set(2.6, 1.0, 1); glow.position.y = 0.15; g.add(glow);
+  return g;
+}
+function animateCars(now){
+  for (const rec of cars){ const h = rec.car.userData.model && rec.car.userData.model.userData.hover; if (h) h.position.y = 0.12 + Math.sin(now * 0.003 + rec.car.id) * 0.06; }
 }
 function makeRocket(){
   const g = new THREE.Group(); g.userData.dyn = true;
@@ -633,13 +681,60 @@ function placeVehicles(){
   // more cars around the planet: one in every client district, so there is always a ride nearby
   const seen = new Set(); let k = 1;
   for (const p of pois){ if (!p.district || seen.has(p.district)) continue; seen.add(p.district);
-    const [d, f] = carSpotNear(p, k % 2 ? -1 : 1); parkCar(makeCar(...CAR_COLORS[k % CAR_COLORS.length]), d, f); k++; }
+    const [d, f] = carSpotNear(p, k % 2 ? -1 : 1); parkCar(makeCar(...CAR_COLORS[k % CAR_COLORS.length], k % 3 === 0), d, f); k++; }
 }
-function mountCar(rec){ car = rec.car; talkables.splice(talkables.indexOf(rec.tk), 1); riding = true; $('ride').innerHTML = '🚗 ' + (lang === 'ar' ? 'انزل' : 'Get out'); car.parent.remove(car); car.position.set(0,0,0); car.quaternion.identity(); player.add(car); rig.visible = false; camDist = Math.max(camDist, 8); Sfx.open(); mini(lang === 'ar' ? '🚗 اضغط E عشان تنزل' : '🚗 Press E to get out'); $('ride').hidden = false; }
-function dismount(){ riding = false; player.remove(car); parkCar(car, pDir.clone(), pFwd.clone()); rig.visible = true; Sfx.close(); $('ride').hidden = true;
+function mountCar(rec){ car = rec.car; setTimeout(paintFutureBtn, 0); talkables.splice(talkables.indexOf(rec.tk), 1); riding = true; $('ride').innerHTML = '🚗 ' + (lang === 'ar' ? 'انزل' : 'Get out'); car.parent.remove(car); car.position.set(0,0,0); car.quaternion.identity(); player.add(car); rig.visible = false; camDist = Math.max(camDist, 8); Sfx.open(); mini(lang === 'ar' ? '🚗 اضغط E عشان تنزل' : '🚗 Press E to get out'); $('ride').hidden = false; }
+function dismount(){ riding = false; setTimeout(paintFutureBtn, 0); player.remove(car); parkCar(car, pDir.clone(), pFwd.clone()); rig.visible = true; Sfx.close(); $('ride').hidden = true;
   // step out to the side of the car
   const side = V().crossVectors(pDir, pFwd).normalize(); pDir.addScaledVector(side, 2.2/R).normalize(); }
 $('ride').onclick = () => { if (riding && state === 'play') dismount(); };
+/* while driving: switch between today's car and the one from the future */
+function paintFutureBtn(){ let b = $('futurebtn');
+  if (!b){ b = document.createElement('button'); b.id = 'futurebtn'; b.type = 'button'; b.className = 'panel'; document.body.appendChild(b);
+    b.onclick = () => { if (!riding || !car) return; setCarStyle(car, !car.userData.car.future); Sfx.open(); paintFutureBtn();
+      burst(player.position.clone().addScaledVector(pDir, 1), car.userData.car.future ? 0x5FF2FF : 0xF2C94C, 30, 3, 0.7);
+      mini(car.userData.car.future ? (lang === 'ar' ? '✨ عربية من المستقبل!' : '✨ A car from the future!') : (lang === 'ar' ? '🚗 رجعنا للعربية العادية' : '🚗 Back to a regular car')); }; }
+  b.hidden = !riding; if (riding && car) b.textContent = car.userData.car.future ? (lang === 'ar' ? '🚗 عربية عادية' : '🚗 Regular car') : (lang === 'ar' ? '✨ عربية المستقبل' : '✨ Future car');
+}
+
+/* bumping into other cars: both get knocked apart, with a thump */
+let knock = V(), knockT = 0, lastThump = 0;
+function carObstacles(){
+  const list = [];
+  for (const rec of cars) if (rec.car !== car && rec.car.parent) list.push({ pos: rec.car.getWorldPosition(V()), rec });
+  for (const v of vehicles) list.push({ pos: v.g.position.clone(), van: v });
+  if (typeof peers !== 'undefined') for (const p of peers.values()) if (p.riding && p.g.visible && !p.ps) list.push({ pos: p.g.position.clone() });
+  return list;
+}
+function carBump(dt){
+  const me = player.position;
+  for (const o of carObstacles()){
+    const d = o.pos.distanceTo(me); if (d > 2.6 || d < 1e-4) continue;
+    // push us out along the ground, away from the other car
+    const away = me.clone().sub(o.pos); const up2 = pDir; away.addScaledVector(up2, -away.dot(up2)).normalize();
+    pDir.addScaledVector(away, (2.6 - d) / R).normalize();
+    knock.copy(away).multiplyScalar(9); knockT = 0.35;
+    // a parked car gets shoved too
+    if (o.rec){ const od = o.pos.clone().normalize(), f = new THREE.Vector3(0, 0, 1).applyQuaternion(o.rec.car.getWorldQuaternion(new THREE.Quaternion()));
+      od.addScaledVector(away, -0.9 / R).normalize(); if (walkable(od)) parkCar(o.rec.car, od, f); }
+    if (o.van){ o.van.ghost = 1.2; }
+    if (performance.now() - lastThump > 450){ lastThump = performance.now(); Sfx.land(); burst(o.pos.clone().lerp(me, 0.5), 0xF4F7FC, 14, 2.2, 0.5); if (navigator.vibrate) navigator.vibrate(40); }
+  }
+  if (knockT > 0){ knockT -= dt; const n = pDir.clone().addScaledVector(knock, dt / R).normalize(); if (walkable(n)) pDir.copy(n); knock.multiplyScalar(Math.exp(-8 * dt)); }
+}
+
+/* floating labels and icons keep a sensible size on screen: never huge up close, never specks far away */
+const fitSprites = [];
+function fitSprite(s, minPx, maxPx){ s.userData.fit = { w: s.scale.x, h: s.scale.y, minPx, maxPx }; fitSprites.push(s); return s; }
+const _fs = V(), _fw = V();
+function fitSpritesFrame(){
+  const px = renderer.domElement.clientHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+  for (let i = fitSprites.length - 1; i >= 0; i--){ const s = fitSprites[i]; if (!s.parent){ continue; }
+    const f = s.userData.fit; s.getWorldPosition(_fw); const d = Math.max(0.5, _fw.distanceTo(camera.position));
+    s.parent.getWorldScale(_fs); const onScreen = f.h * _fs.y * px / d;
+    const k = onScreen > f.maxPx ? f.maxPx / onScreen : onScreen < f.minPx ? f.minPx / onScreen : 1;
+    s.scale.set(f.w * k, f.h * k, 1); }
+}
 
 function buildRoadside(){
   // street lamps + benches along the roads
@@ -1104,6 +1199,7 @@ function updatePlayer(dt, now){
     if (!nd){ for (const a of [0.6, -0.6, 1.2, -1.2]){ nd = tryDir(V().copy(pFwd).applyAxisAngle(up, a)); if (nd) break; } }
     if (nd){ moved = pDir.angleTo(nd)*R; pDir.copy(nd); }
   }
+  if (riding) carBump(dt);
   // the ground under us may have pushed us out of an obstacle while idle
   if (!moved) resolve(pDir);
   up.copy(pDir); pFwd.addScaledVector(up, -pFwd.dot(up)).normalize();
@@ -1233,7 +1329,7 @@ function frame(now){
       if (guide && pDir.angleTo(guide.dir)*R < guide.r + 3) guide = null;
     } else $('prompt').hidden = true;
   }
-  updateBursts(dt);
+  updateBursts(dt); animateCars(now); fitSpritesFrame();
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }

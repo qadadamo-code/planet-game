@@ -105,7 +105,7 @@ function labelSprite(text, col = '#12153A', border = '#8FB4E3', w = 512){
     x.fillStyle = '#F4F7FC'; x.font = '700 46px IBM Plex Sans Arabic, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = lang === 'ar' ? 'rtl' : 'ltr'; x.fillText(txt, w/2, 50, w - 40);
     tx.needsUpdate = true; };
   paint(); if (typeof text !== 'string') langHooks.push(paint);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 5; s.scale.set(w/96*0.42, 0.42, 1); return s;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 5; s.scale.set(w/96*0.42, 0.42, 1); return fitSprite(s, 14, 26);
 }
 function box(w, h, d, color, x, y, z, ink = true){ const m = mesh(new THREE.BoxGeometry(w, h, d), color, ink ? 1 : 0); m.position.set(x, y, z); oGroup.add(m); return m; }
 
@@ -119,7 +119,7 @@ function crewTag(m){
     x.fillStyle = '#F2C94C'; x.font = '600 32px IBM Plex Sans Arabic, sans-serif'; x.fillText(t(m.title), w/2, 104, w - 40);
     tx.needsUpdate = true; };
   paint(); langHooks.push(paint);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 6; s.scale.set(w/h*0.62, 0.62, 1); return s;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 6; s.scale.set(w/h*0.62, 0.62, 1); return fitSprite(s, 30, 46);
 }
 
 /* the photo studio in the back: backdrop, lights, a model holding a client's product */
