@@ -278,9 +278,13 @@ function exitBuilding(){
 let sitting = null, legBones = null;
 function findLegs(){ if (legBones !== null) return legBones; const b = {}; rig.traverse(o => { if (o.isBone && ['LeftUpLeg', 'RightUpLeg', 'LeftLeg', 'RightLeg', 'Hips'].includes(o.name)) b[o.name] = o; }); legBones = b.LeftUpLeg ? b : false; return legBones; }
 function sitDown(seat, where){
-  sitting = { ...seat, where }; Sfx.click(); releaseAll(); $('prompt').hidden = true; showSitBubble();
+  // remember where we stood, so standing up puts us back on the floor beside the seat — not on top of it
+  const back = where === 'o' ? oPos.clone() : iPos.clone();
+  sitting = { ...seat, where, back }; Sfx.click(); releaseAll(); $('prompt').hidden = true; showSitBubble();
 }
-function standUp(){ if (!sitting) return; sitting = null; rig.position.y = 0; const b = $('sitbubble'); if (b) b.hidden = true; if (proc.legL){ proc.legL.rotation.x = proc.legR.rotation.x = 0; } }
+function standUp(){ if (!sitting) return; const was = sitting; sitting = null;
+  if (was.back){ if (was.where === 'o' && typeof oPos !== 'undefined'){ oPos.copy(was.back); oYaw = was.yaw; } else if (was.where === 'b'){ iPos.copy(was.back); iYaw = was.yaw; } }
+  rig.position.y = 0; const b = $('sitbubble'); if (b) b.hidden = true; if (proc.legL){ proc.legL.rotation.x = proc.legR.rotation.x = 0; } }
 function applySitPose(){
   const legs = findLegs();
   if (legs){ legs.LeftUpLeg.rotateX(-1.45); legs.RightUpLeg.rotateX(-1.45); legs.LeftLeg.rotateX(1.45); legs.RightLeg.rotateX(1.45); }
