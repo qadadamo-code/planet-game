@@ -43,7 +43,10 @@ function closeExhibit(){
 function shell(tag, title, inner, foot = ''){
   $('exbody').innerHTML = `<div class="ex-head"><span class="ex-tag">${t(tag)}</span><h2>${title}</h2></div>${inner}${foot}`;
   $('exbody').scrollTop = 0;
+  // any service tag opens that service's screen
+  $('exbody').onclick = svcTap;
 }
+function svcTap(e){ const b = e.target.closest('[data-svc]'); if (b && state === 'exhibit'){ e.stopPropagation(); Sfx.click(); openExhibit('service', b.dataset.svc); } }
 
 const EXHIBITS = {
   /* one case at a time, like walking past framed pieces */
@@ -62,7 +65,7 @@ const EXHIBITS = {
             <img class="plogo" src="img/logos/${w.logo}.png" alt="">
             <h3>${t(w.name)}</h3>
             ${w.sum ? `<p>${t(w.sum)}</p>` : `<p class="soon">${t(X.more)}</p>`}
-            <div class="chips">${w.svc.map(s => `<span>${xsvc(s)}</span>`).join('')}</div>
+            <div class="chips">${w.svc.map(s => `<button type="button" data-svc="${s}">${xsvc(s)} ←</button>`).join('')}</div>
             ${w.quote ? `<blockquote>${t(w.quote)}</blockquote>` : ''}
             ${linksHTML(w.logo)}
           </div>
@@ -116,10 +119,16 @@ const EXHIBITS = {
     shell(L(`STUDIO ${p.n}`, `استوديو ${p.n}`), t(p.name), `
       <p class="ex-lead">${t(p.lines[0])}</p>
       <h4>${t(X.get)}</h4>
-      <ul class="ticks">${SERVICE_GETS[id].map((g, k) => `<li style="--d:${200 + k * 160}ms">${t(g)}</li>`).join('')}</ul>
+      <p class="ex-note">${lang === 'ar' ? 'اختار اللي محتاجه منها:' : 'Pick what you need:'}</p>
+      <div class="ticks">${SERVICE_GETS[id].map((g, k) => `<button type="button" class="tk ${(brief.wants[id] || []).includes(k) ? 'on' : ''}" data-k="${k}" style="--d:${200 + k * 160}ms">${t(g)}</button>`).join('')}</div>
+      <div class="sendrow"><button type="button" class="ex-cta" id="askSvc">📝 ${lang === 'ar' ? 'اطلب الخدمة دي' : 'Request this service'}</button></div>
       ${cases.length ? `<h4>${t(X.seen)}</h4><div class="minicases">${cases.map(w => `
         <button type="button" data-case="${w.id}"><img src="img/${w.imgs[0]}" alt=""><span>${t(w.name)}</span></button>`).join('')}</div>` : ''}`);
     $('exbody').querySelectorAll('[data-case]').forEach(b => b.onclick = () => openExhibit('work', b.dataset.case));
+    $('exbody').querySelectorAll('.tk').forEach(b => b.onclick = () => { const k = +b.dataset.k, cur = brief.wants[id] || [];
+      brief.wants[id] = cur.includes(k) ? cur.filter(x => x !== k) : [...cur, k]; b.classList.toggle('on'); Sfx.click(); });
+    $('askSvc').onclick = () => { if (!brief.svcs.includes(id)) brief.svcs.push(id); if (!(brief.wants[id] || []).length) brief.wants[id] = SERVICE_GETS[id].map((_, k) => k);
+      brief.step = 0; openExhibit('brief'); };
     SERVICE_GETS[id].forEach((_, k) => setTimeout(() => state === 'exhibit' && Sfx.blip(), 200 + k * 160));
   },
 
@@ -195,19 +204,22 @@ const GOALS = [
   ['team', L("Our team needs direction","فريقنا محتاج توجيه"), ['s8','s1']],
 ];
 const BUDGETS = [L("Not sure yet","لسه مش متأكد"), L("Under 20k EGP / month","أقل من 20 ألف جنيه شهرياً"), L("20k – 60k EGP / month","20 – 60 ألف جنيه شهرياً"), L("60k+ EGP / month","أكتر من 60 ألف جنيه شهرياً")];
-const brief = { step: 0, ind: null, goals: [], budget: 0, name: '', company: '' };
+const brief = { step: 0, ind: null, goals: [], budget: 0, name: '', company: '', svcs: [], wants: {} };
 const BQ = L("Build your brief","اعمل بريفك");
 function recommend(){
-  const score = {}; brief.goals.forEach(g => GOALS.find(x => x[0] === g)[2].forEach((s, k) => score[s] = (score[s] || 0) + 3 - k));
+  const score = {}; brief.svcs.forEach(id => score[id] = 100); brief.goals.forEach(g => GOALS.find(x => x[0] === g)[2].forEach((s, k) => score[s] = (score[s] || 0) + 3 - k));
   return Object.keys(score).sort((a, b) => score[b] - score[a]).slice(0, 3);
+}
+function wantLines(lg){
+  return Object.entries(brief.wants).filter(([, ks]) => ks.length).map(([id, ks]) => `• ${POIS.find(p => p.id === id).name[lg]}: ${ks.map(k => SERVICE_GETS[id][k][lg]).join(lg === 'ar' ? '، ' : ', ')}`);
 }
 function briefMessage(){
   const ind = INDS.find(x => x[0] === brief.ind), ar = lang === 'ar';
   const lines = ar
     ? ['أهلاً Planet 👋', `أنا ${brief.name || '—'}${brief.company ? ' من ' + brief.company : ''}.`, `المجال: ${ind ? ind[1].ar : '—'}`,
-       `اللي محتاجينه: ${brief.goals.map(g => GOALS.find(x => x[0] === g)[1].ar).join('، ') || '—'}`, `الخدمات المقترحة: ${recommend().map(id => POIS.find(p => p.id === id).name.ar).join('، ')}`, `الميزانية: ${BUDGETS[brief.budget].ar}`, '(من كوكب Planet)']
+       `اللي محتاجينه: ${brief.goals.map(g => GOALS.find(x => x[0] === g)[1].ar).join('، ') || '—'}`, `الخدمات المقترحة: ${recommend().map(id => POIS.find(p => p.id === id).name.ar).join('، ')}`, `الميزانية: ${BUDGETS[brief.budget].ar}`, ...wantLines('ar'), '(من كوكب Planet)']
     : ['Hi Planet 👋', `I'm ${brief.name || '—'}${brief.company ? ' from ' + brief.company : ''}.`, `Industry: ${ind ? ind[1].en : '—'}`,
-       `What we need: ${brief.goals.map(g => GOALS.find(x => x[0] === g)[1].en).join(', ') || '—'}`, `Suggested services: ${recommend().map(id => POIS.find(p => p.id === id).name.en).join(', ')}`, `Budget: ${BUDGETS[brief.budget].en}`, '(sent from the Planet game)'];
+       `What we need: ${brief.goals.map(g => GOALS.find(x => x[0] === g)[1].en).join(', ') || '—'}`, `Suggested services: ${recommend().map(id => POIS.find(p => p.id === id).name.en).join(', ')}`, `Budget: ${BUDGETS[brief.budget].en}`, ...wantLines('en'), '(sent from the Planet game)'];
   return lines.join('\n');
 }
 EXTRA.brief = () => {
@@ -219,7 +231,7 @@ EXTRA.brief = () => {
   if (st === 0) body = `<p class="ex-lead">${ar ? 'شغلك في أنهي مجال؟' : 'What field are you in?'}</p>
     <div class="opts">${INDS.map(([id, n, ic]) => `<button type="button" class="opt ${brief.ind === id ? 'on' : ''}" data-ind="${id}"><span>${ic}</span>${t(n)}</button>`).join('')}</div>${nav(!!brief.ind)}`;
   if (st === 1) body = `<p class="ex-lead">${ar ? 'إيه اللي محتاجه دلوقتي؟ (اختار أكتر من واحدة)' : 'What do you need right now? (pick any)'}</p>
-    <div class="opts col">${GOALS.map(([id, n]) => `<button type="button" class="opt ${brief.goals.includes(id) ? 'on' : ''}" data-goal="${id}"><span>${brief.goals.includes(id) ? '✓' : '+'}</span>${t(n)}</button>`).join('')}</div>${nav(brief.goals.length > 0)}`;
+    <div class="opts col">${GOALS.map(([id, n]) => `<button type="button" class="opt ${brief.goals.includes(id) ? 'on' : ''}" data-goal="${id}"><span>${brief.goals.includes(id) ? '✓' : '+'}</span>${t(n)}</button>`).join('')}</div>${nav(brief.goals.length > 0 || brief.svcs.length > 0)}`;
   if (st === 2) body = `<p class="ex-lead">${ar ? 'الميزانية التقريبية؟' : 'Rough budget?'}</p>
     <div class="opts col">${BUDGETS.map((b, k) => `<button type="button" class="opt ${brief.budget === k ? 'on' : ''}" data-bud="${k}"><span>${'💰'.repeat(Math.max(1, k))}</span>${t(b)}</button>`).join('')}</div>${nav(true)}`;
   if (st === 3) body = `<p class="ex-lead">${ar ? 'وأخيراً، نكلّم مين؟' : 'Last one — who do we talk to?'}</p>
@@ -331,7 +343,7 @@ EXTRA.client = key => {
   const dk = Object.keys(DISTRICTS).find(k => DISTRICTS[k].clients.includes(c.logo)), D = dk && DISTRICTS[dk];
   shell(D ? L(`${D.icon} ${D.name.en}`, `${D.icon} ${D.name.ar}`) : X.clients, `${c.logo ? `<img class="hlogo" src="img/logos/${c.logo}.png" alt="">` : ''}${t(c.name)}`, `
     ${w && w.sum ? `<p class="ex-lead">${t(w.sum)}</p>` : `<p class="ex-lead">${ar ? `شغل اتسلّم لـ${c.name.ar} — من أكتر من 370 علامة اشتغلنا معاها.` : `Selected creatives delivered for ${c.name.en} — one of the 370+ brands we work with.`}</p>`}
-    ${w && w.svc.length ? `<div class="chips">${w.svc.map(s2 => `<span>${xsvc(s2)}</span>`).join('')}${w.year ? `<span>${w.year}</span>` : ''}</div>` : ''}
+    ${w && w.svc.length ? `<div class="chips">${w.svc.map(s2 => `<button type="button" data-svc="${s2}">${xsvc(s2)} ←</button>`).join('')}${w.year ? `<span>${w.year}</span>` : ''}</div>` : ''}
     ${w && w.quote ? `<blockquote>${t(w.quote)}</blockquote>` : ''}
     ${linksHTML(c.logo)}
     <h4>${ar ? `أعمالنا لـ${c.name.ar}` : `Our work for ${c.name.en}`} <small class="cnt">${imgs.length}</small></h4>
@@ -385,3 +397,5 @@ $('install').onclick = async () => {
   EXTRA.install = () => shell(L("INSTALL","ثبّت التطبيق"), ar ? 'Planet على شاشتك الرئيسية' : 'Planet on your home screen', `<ol class="steps">${steps.map(x => `<li>${x}</li>`).join('')}</ol>`);
   EXHIBITS.install = EXTRA.install; openExhibit('install');
 };
+/* touch: run is a toggle, so pushing the stick to the edge just walks */
+$('trun').onclick = () => { runToggle = !runToggle; $('trun').setAttribute('aria-pressed', runToggle); Sfx.click(); };

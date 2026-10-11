@@ -48,7 +48,8 @@ const Sfx = (() => {
   return {
     init, get on(){ return on },
     toggle(){ on = !on; store.set('pm-sound', on ? 'on' : 'off'); if (master) master.gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.08); return on; },
-    duck(v){ if (musicGain) musicGain.gain.setTargetAtTime(v, ctx.currentTime, 0.4); },
+    duck(v){ if (musicGain) musicGain.gain.setTargetAtTime(Math.max(v, 0.75), ctx.currentTime, 0.4); },
+    wake(){ if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); },
     step(run, grass){ play((grass ? 'step_grass_' : 'step_stone_') + (Math.random()*5|0), run ? 0.38 : 0.26, 0.92 + Math.random()*0.16); },
     blip(){ const n = performance.now(); if (n - lastBlip < 70) return; lastBlip = n; play('blip', 0.12, 0.9 + Math.random()*0.25); },
     click(){ play('click', 0.35); }, open(){ play('open', 0.45); }, close(){ play('close', 0.4); },
@@ -849,7 +850,9 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { keys[e.code] = false; });
 const releaseAll = () => { for (const k in keys) keys[k] = false; joy.x = joy.y = 0; joy.id = null; $('knob').style.transform = ''; };
 addEventListener('blur', releaseAll);
-document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); else Sfx.wake(); });
+['pointerdown', 'keydown', 'touchend'].forEach(ev => addEventListener(ev, () => Sfx.wake(), { passive: true, capture: true }));
+addEventListener('pageshow', () => Sfx.wake()); addEventListener('focus', () => Sfx.wake());
 
 const joy = { x: 0, y: 0, id: null };
 const stick = $('stick'), knob = $('knob');
@@ -862,6 +865,7 @@ function moveJoy(e){ const b = stick.getBoundingClientRect(); let x = (e.clientX
 $('tjump').addEventListener('pointerdown', e => { e.preventDefault(); if (state === 'play') jumpReq = true; });
 
 /* camera drag */
+let runToggle = false;
 let camYawDelta = 0, camH = 2.6, camDist = 5.6, lastDrag = -1e9;
 const drag = { id: null, x: 0, y: 0 };
 canvas.addEventListener('pointerdown', e => { if (state !== 'play' && state !== 'talk') return; drag.id = e.pointerId; drag.x = e.clientX; drag.y = e.clientY; canvas.setPointerCapture(e.pointerId); });
@@ -953,10 +957,11 @@ function act(){
   if (state === 'play' && riding) return dismount();
   if (state === 'play' && near) return interact(near);
 }
-$('prompt').onclick = () => act();
+{ let lastAct = 0; const fire = e => { if (performance.now() - lastAct < 400) return; lastAct = performance.now(); e.preventDefault(); act(); };
+  $('prompt').addEventListener('pointerup', fire); $('prompt').addEventListener('click', fire); }
 function interact(tk){
   if (tk.kind === 'stone'){ const s = STONES[tk.ref][lang]; return talk(L(STONES[tk.ref].en[0], STONES[tk.ref].ar[0]), [L(STONES[tk.ref].en[1], STONES[tk.ref].ar[1])], true); }
-  if (tk.kind === 'board') return openExhibit('work', tk.ref.id);
+  if (tk.kind === 'board') return openExhibit('client', tk.ref.logo || tk.ref.name.en);
   if (tk.kind === 'car') return mountCar();
   if (tk.kind === 'rocket') return talk(L('Planet Rocket','صاروخ Planet'), [L("Fuelled and ready. Three worlds orbit Planet: the Moon where our crew lives, the Clients' Ring, and the Academy planet.", "الوقود مليان. فيه تلات عوالم حوالين Planet: القمر اللي ساكن فيه طاقمنا، وحلقة العملاء، وكوكب الأكاديمية.")], true, () => startLaunch());
   if (tk.kind === 'walker'){ tk.ref.pause = 4; return talk(L('Townsperson', 'واحد من سكان الكوكب'), [tk.ref.line], true); }
@@ -1032,7 +1037,7 @@ function updatePlayer(dt, now){
   if (camYawDelta){ camFwd.applyAxisAngle(up, -camYawDelta); camYawDelta = 0; }
   const camRight = right.crossVectors(camFwd, up).normalize();
   const [ix, iy, mag] = state === 'play' ? inputVector() : [0,0,0];
-  const run = keys.ShiftLeft || keys.ShiftRight || (joy.id !== null && mag > 0.92);
+  const run = keys.ShiftLeft || keys.ShiftRight || runToggle;
   let moved = 0;
   if (mag > 0.08){
     const wish = tmp.copy(camFwd).multiplyScalar(iy).addScaledVector(camRight, ix).normalize();
