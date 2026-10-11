@@ -288,7 +288,7 @@ function drawCert(cv, name){
   x.fillStyle = '#F4F7FC'; x.strokeStyle = '#12153A'; x.lineWidth = 10; x.beginPath(); x.roundRect ? x.roundRect(90, 230, 900, 760, 28) : x.rect(90, 230, 900, 760); x.fill(); x.stroke();
   if (drawCert.logo && drawCert.logo.complete && drawCert.logo.naturalWidth) x.drawImage(drawCert.logo, W / 2 - 60, 110, 120, 120 * drawCert.logo.naturalHeight / drawCert.logo.naturalWidth);
   x.textAlign = 'center'; x.direction = ar ? 'rtl' : 'ltr';
-  const font = (w, s) => `${w} ${s}px ${ar ? 'Tajawal' : 'Montserrat'}, sans-serif`;
+  const font = (w, s) => `${w} ${s}px ${ar ? 'IBM Plex Sans Arabic' : 'Montserrat'}, sans-serif`;
   x.fillStyle = '#2E6BA9'; x.font = font(800, 40); x.fillText(ar ? 'شهادة ساعي كوكب Planet' : 'PLANET MESSENGER CERTIFICATE', W / 2, 320);
   x.fillStyle = '#12153A'; x.font = font(800, 84); x.fillText(name || (ar ? 'ضيف الكوكب' : 'Planet guest'), W / 2, 450);
   x.font = font(600, 34); x.fillStyle = '#3a4566'; x.fillText(ar ? 'لفّ الكوكب واتعرّف على شغلنا' : 'explored the planet and met our work', W / 2, 520);

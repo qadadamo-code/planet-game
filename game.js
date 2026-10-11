@@ -309,7 +309,7 @@ function signTex(p){
   x.textAlign = 'center'; x.fillStyle = '#F2C94C'; x.font = '900 60px Orbitron, Arial Black, sans-serif';
   const cx = p.client ? 340 : 256, mw = p.client ? 320 : 470;
   x.fillText((p.n ? p.n + ' ' : '') + p.sign, cx, 90, mw);
-  x.fillStyle = '#F4F7FC'; x.font = '700 50px Tajawal, sans-serif'; x.direction = 'rtl'; x.fillText(p.name.ar, cx, 160, mw);
+  x.fillStyle = '#F4F7FC'; x.font = '700 50px IBM Plex Sans Arabic, sans-serif'; x.direction = 'rtl'; x.fillText(p.name.ar, cx, 160, mw);
   const tx = new THREE.CanvasTexture(cv); tx.anisotropy = 4; return tx;
 }
 function markerTex(done){
@@ -511,7 +511,7 @@ function logoTex(c){
   const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d'), tx = new THREE.CanvasTexture(cv);
   const paint = img => { x.fillStyle = '#ffffff'; x.fillRect(0,0,256,256); x.strokeStyle = '#12153A'; x.lineWidth = 14; x.strokeRect(7,7,242,242);
     if (img){ const s = Math.min(190/img.width, 190/img.height); x.drawImage(img, 128 - img.width*s/2, 128 - img.height*s/2, img.width*s, img.height*s); }
-    else { x.fillStyle = '#12153A'; x.font = '900 120px Tajawal, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(c.name.en.slice(0,1), 128, 132); }
+    else { x.fillStyle = '#12153A'; x.font = '900 120px IBM Plex Sans Arabic, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(c.name.en.slice(0,1), 128, 132); }
     tx.needsUpdate = true; };
   paint(null);
   if (c.logo){ const im = new Image(); im.onload = () => paint(im); im.src = `img/logos/${c.logo}.png`; }
@@ -539,7 +539,7 @@ function districtTex(D){
   const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 220; const x = cv.getContext('2d');
   const col = '#' + D.color.toString(16).padStart(6, '0');
   x.fillStyle = '#12153A'; x.fillRect(0,0,1024,220); x.fillStyle = col; x.fillRect(0,0,1024,26); x.fillRect(0,194,1024,26);
-  x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#F4F7FC'; x.font = '800 78px Tajawal, sans-serif'; x.direction = 'rtl';
+  x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#F4F7FC'; x.font = '800 78px IBM Plex Sans Arabic, sans-serif'; x.direction = 'rtl';
   x.fillText(D.icon + ' ' + D.name.ar, 512, 98, 980); x.direction = 'ltr'; x.fillStyle = '#F2C94C'; x.font = '800 34px Montserrat, sans-serif'; x.fillText(D.name.en.toUpperCase(), 512, 162, 980);
   const t2 = new THREE.CanvasTexture(cv); t2.anisotropy = 4; return t2;
 }
@@ -647,7 +647,7 @@ function buildBillboards(){
   });
 }
 function boardLabel(w){ const c = document.createElement('canvas'); c.width = 512; c.height = 88; const x = c.getContext('2d');
-  x.fillStyle = '#12153A'; x.fillRect(0,0,512,88); x.fillStyle = '#F2C94C'; x.font = '800 44px Tajawal, Montserrat, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillStyle = '#12153A'; x.fillRect(0,0,512,88); x.fillStyle = '#F2C94C'; x.font = '800 44px IBM Plex Sans Arabic, Montserrat, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
   x.fillText(w.name.en.toUpperCase(), 256, 46); return new THREE.CanvasTexture(c); }
 
 function buildNature(){
@@ -1198,7 +1198,7 @@ function introDone(){
   applyLang(); syncSnd(); resize();
   const bar = $('loadbar'), setP = p => bar.style.width = Math.round(p*100) + '%';
   requestAnimationFrame(frame);
-  await Promise.race([Promise.all([document.fonts.load('900 60px Orbitron'), document.fonts.load('700 50px Tajawal')]), new Promise(r => setTimeout(r, 2500))]);
+  await Promise.race([Promise.all([document.fonts.load('900 60px Orbitron'), document.fonts.load('700 50px IBM Plex Sans Arabic')]), new Promise(r => setTimeout(r, 2500))]);
   await loadModels(p => setP(p*0.55)); setP(0.6); await nextFrame();
   buildSky(); buildTerrain(); setP(0.72); await nextFrame();
   buildPois(); buildDistrictGates(); buildRoadside(); buildBillboards(); setP(0.8); await nextFrame();

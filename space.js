@@ -19,14 +19,14 @@ function spriteFromCanvas(draw, w = 256, h = 256){
 function roundPhoto(src, label){
   return spriteFromCanvas((x, done) => {
     const ring = () => { x.lineWidth = 14; x.strokeStyle = '#F2C94C'; x.beginPath(); x.arc(128,110,96,0,7); x.stroke();
-      x.fillStyle = '#12153A'; x.fillRect(18,212,220,40); x.fillStyle = '#F4F7FC'; x.font = '700 26px Tajawal, sans-serif'; x.textAlign = 'center'; x.direction = 'rtl'; x.fillText(label, 128, 240, 210); done(); };
+      x.fillStyle = '#12153A'; x.fillRect(18,212,220,40); x.fillStyle = '#F4F7FC'; x.font = '700 26px IBM Plex Sans Arabic, sans-serif'; x.textAlign = 'center'; x.direction = 'rtl'; x.fillText(label, 128, 240, 210); done(); };
     x.fillStyle = '#2E6BA9'; x.beginPath(); x.arc(128,110,96,0,7); x.fill(); ring();
     if (!src) return; const im = new Image(); im.onload = () => { x.save(); x.beginPath(); x.arc(128,110,94,0,7); x.clip(); x.drawImage(im, 32, 14, 192, 192); x.restore(); ring(); }; im.src = src;
   });
 }
 function iconCard(icon, label, col){
   return spriteFromCanvas(x => { x.fillStyle = col; x.strokeStyle = '#12153A'; x.lineWidth = 12; x.beginPath(); x.roundRect ? x.roundRect(10,10,236,236,36) : x.rect(10,10,236,236); x.fill(); x.stroke();
-    x.font = '96px serif'; x.textAlign = 'center'; x.fillText(icon, 128, 130); x.fillStyle = '#12153A'; x.font = '800 30px Tajawal, sans-serif'; x.direction = 'rtl'; x.fillText(label, 128, 212, 220); });
+    x.font = '96px serif'; x.textAlign = 'center'; x.fillText(icon, 128, 130); x.fillStyle = '#12153A'; x.font = '800 30px IBM Plex Sans Arabic, sans-serif'; x.direction = 'rtl'; x.fillText(label, 128, 212, 220); });
 }
 function makeWorld(color, radius, pos, ringed){
   const g = new THREE.Group(); g.position.copy(pos); scene.add(g);
