@@ -151,3 +151,20 @@ const ABOUT = {
     [L("Built to hand over","معمول عشان يتسلّم"), L("We build things your team can run without us.","بنبني حاجات فريقك يقدر يشغّلها من غيرنا.")],
   ],
 };
+
+/* clients from the studio's records that have no logo file on theplanetco.com — shown as name badges */
+[['Maestro','مايسترو'], ['Smartiva','سمارتيفا'], ['Dantel','دانتيل'], ['Boat Battana','بوت بطانة']]
+  .forEach(([en, ar]) => CLIENTS.push({ name: L(en, ar), logo: '', cover: '', work: '' }));
+
+/* industries we know from the studio's records, for the gallery entries that have a cover but no written case */
+const CLIENT_IND = {
+  uber: L("FMCG","سلع استهلاكية"), value: L("Dental clinics","عيادات أسنان"), lorya: L("Retail brand","براند تجاري"),
+  aljamalla: L("Restaurants & cafés","مطاعم وكافيهات"), westeros: L("Restaurants & cafés","مطاعم وكافيهات"), alshawwa: L("Restaurants & cafés","مطاعم وكافيهات"),
+  jagal: L("Services","خدمات"), 'mo-adel': L("Professional services","خدمات مهنية"), hnaif: L("Travel & Tourism","السفر والسياحة"),
+  tadawa: L("Healthcare","الرعاية الصحية"), 'implant-gate': L("Dentistry","طب الأسنان"),
+};
+/* every client with a cover joins the gallery, so a visit shows 20+ pieces, not only the 8 written cases */
+CLIENTS.filter(c => c.cover && !c.work).forEach(c => WORK.push({
+  id: 'c-' + c.cover, name: c.name, ind: CLIENT_IND[c.cover] || L("Planet client","عميل Planet"), year: '', logo: c.logo,
+  imgs: ['covers/' + c.cover + '.jpg'], svc: [], sum: null,
+}));

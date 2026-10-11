@@ -14,9 +14,11 @@ const X = {
   collected: L("collected", "اتجمعوا"),
   everyone: L("Everyone", "الكل"),
   start: L("Start a project", "ابدأ مشروعك"),
+  more: L("One of the 370+ brands we have worked with. Ask us about this project.", "واحدة من أكتر من 370 علامة اشتغلنا معاها. اسألنا عن المشروع ده."),
 };
 
 const xsvc = id => t(POIS.find(p => p.id === id).name);
+const xshuffle = a => { const b = [...a]; for (let i = b.length - 1; i > 0; i--){ const j = Math.random()*(i + 1)|0; [b[i], b[j]] = [b[j], b[i]]; } return b; };
 const xini = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join('');
 let xRender = null, xKeys = null, xPrevState = 'play', xAfter = null;
 
@@ -41,27 +43,30 @@ function shell(tag, title, inner, foot = ''){
 const EXHIBITS = {
   /* one case at a time, like walking past framed pieces */
   work(start = 0){
-    let i = typeof start === 'number' ? start : Math.max(0, WORK.findIndex(w => w.id === start));
+    // a fresh order every visit; a specific piece (from a logo or a studio) opens first
+    const list = xshuffle(WORK);
+    if (typeof start === 'string'){ const k = list.findIndex(w => w.id === start); if (k > 0) list.unshift(...list.splice(k, 1)); }
+    let i = 0;
     const draw = () => {
-      const w = WORK[i];
-      shell(X.ourWork, `<span class="ex-count">${String(i + 1).padStart(2,'0')}<small>/${String(WORK.length).padStart(2,'0')}</small></span>`, `
+      const w = list[i];
+      shell(X.ourWork, `<span class="ex-count">${String(i + 1).padStart(2,'0')}<small>/${String(list.length).padStart(2,'0')}</small></span>`, `
         <div class="case-stage" key="${w.id}">
           <div class="frame"><div class="slides">${w.imgs.map((s, k) => `<img src="img/${s}" alt="" style="--k:${k}">`).join('')}</div>
-            <span class="badge">${t(w.ind)} · ${w.year}</span></div>
+            <span class="badge">${t(w.ind)}${w.year ? ' · ' + w.year : ''}</span></div>
           <div class="plaque">
             <img class="plogo" src="img/logos/${w.logo}.png" alt="">
             <h3>${t(w.name)}</h3>
-            <p>${t(w.sum)}</p>
+            ${w.sum ? `<p>${t(w.sum)}</p>` : `<p class="soon">${t(X.more)}</p>`}
             <div class="chips">${w.svc.map(s => `<span>${xsvc(s)}</span>`).join('')}</div>
             ${w.quote ? `<blockquote>${t(w.quote)}</blockquote>` : ''}
           </div>
         </div>`, `
         <div class="ex-nav"><button type="button" class="ex-arrow" data-d="-1" aria-label="${t(X.prev)}">‹</button>
-          <div class="dots">${WORK.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
+          <div class="dots">${list.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
           <button type="button" class="ex-arrow" data-d="1" aria-label="${t(X.next)}">›</button></div>`);
       $('exbody').querySelectorAll('[data-d]').forEach(b => b.onclick = () => go(+b.dataset.d));
     };
-    const go = d => { i = (i + d + WORK.length) % WORK.length; Sfx.click(); draw(); };
+    const go = d => { i = (i + d + list.length) % list.length; Sfx.click(); draw(); };
     // in RTL the "next" arrow sits on the left, so the arrow keys follow what you see
     xKeys = e => { if (e.code === 'ArrowLeft') go(lang === 'ar' ? 1 : -1); if (e.code === 'ArrowRight') go(lang === 'ar' ? -1 : 1); };
     draw();
@@ -71,9 +76,9 @@ const EXHIBITS = {
   clients(){
     shell(X.clients, `<span class="roll" data-to="${CLIENTS.length}">0</span> <small>${t(X.of370)}</small>`, `
       <p class="ex-note">${t(X.tapLogo)}</p>
-      <div class="wall">${CLIENTS.map((c, k) => `
-        <button type="button" class="tile ${c.work ? 'has' : ''}" style="--d:${k * 45}ms" ${c.work ? `data-case="${c.work}"` : 'disabled'}>
-          <img src="img/logos/${c.logo}.png" alt=""><span>${t(c.name)}</span></button>`).join('')}</div>`);
+      <div class="wall">${xshuffle(CLIENTS).map((c, k) => { const open = c.work || (c.cover ? 'c-' + c.cover : '');
+        return `<button type="button" class="tile ${open ? 'has' : ''}" style="--d:${k * 40}ms" ${open ? `data-case="${open}"` : 'disabled'}>
+          ${c.logo ? `<img src="img/logos/${c.logo}.png" alt="">` : `<span class="mono" style="--h:${(k * 53) % 360}">${xini(t(c.name))}</span>`}<span>${t(c.name)}</span></button>`; }).join('')}</div>`);
     const r = $('exbody').querySelector('.roll'); let n = 0;
     const tick = setInterval(() => { if (!r.isConnected) return clearInterval(tick); r.textContent = ++n; if (n % 3 === 0) Sfx.blip(); if (n >= +r.dataset.to) clearInterval(tick); }, 45);
     $('exbody').querySelectorAll('[data-case]').forEach(b => b.onclick = () => openExhibit('work', b.dataset.case));
