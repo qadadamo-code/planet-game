@@ -189,16 +189,16 @@ function snapPhoto(){
   lg.onerror = () => showPhoto(out); lg.src = 'logo.png';
   Sfx.finish(); const fl = document.createElement('div'); fl.className = 'photoflash'; document.body.appendChild(fl); setTimeout(() => fl.remove(), 500);
 }
-function showPhoto(cv){
+function showPhoto(cv, again, shareText){
   const url = cv.toDataURL('image/jpeg', 0.9);
   const box = xModal('photobox', `<h3>📸 ${AR() ? 'صورتكم من الكوكب' : 'Your photo from the planet'}</h3><img class="ph-img" alt="">
     <div class="xm-acts"><button type="button" data-a="share">📤 ${AR() ? 'شارك' : 'Share'}</button><a data-a="dl" download="planet-photo.jpg">⬇️ ${AR() ? 'نزّلها' : 'Download'}</a>
     <button type="button" data-a="again">🔁 ${AR() ? 'صورة تانية' : 'Another one'}</button></div>`);
   box.querySelector('.ph-img').src = url; box.querySelector('[data-a="dl"]').href = url;
-  box.querySelector('[data-a="again"]').onclick = () => { closeX('photobox'); setTimeout(takeGroupPhoto, 200); };
+  box.querySelector('[data-a="again"]').onclick = () => { closeX('photobox'); setTimeout(again || takeGroupPhoto, 200); };
   box.querySelector('[data-a="share"]').onclick = async () => {
     try { const blob = await (await fetch(url)).blob(), f = new File([blob], 'planet-photo.jpg', { type: 'image/jpeg' });
-      if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: 'Planet', text: AR() ? 'صورتنا من كوكب Planet 🪐 game.theplanetco.com' : 'Our photo from Planet 🪐 game.theplanetco.com' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: 'Planet', text: shareText || (AR() ? 'صورتنا من كوكب Planet 🪐 game.theplanetco.com' : 'Our photo from Planet 🪐 game.theplanetco.com') });
       else box.querySelector('[data-a="dl"]').click(); } catch (e) {} };
 }
 function photoBtn(){
