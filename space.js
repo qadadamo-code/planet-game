@@ -17,11 +17,15 @@ function spriteFromCanvas(draw, w = 256, h = 256){
   return new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, fog: false, depthWrite: false }));
 }
 function roundPhoto(src, label){
+  // label is bilingual: the name under each face follows the game's language
   return spriteFromCanvas((x, done) => {
-    const ring = () => { x.lineWidth = 14; x.strokeStyle = '#F2C94C'; x.beginPath(); x.arc(128,110,96,0,7); x.stroke();
-      x.fillStyle = '#12153A'; x.fillRect(18,212,220,40); x.fillStyle = '#F4F7FC'; x.font = '700 26px IBM Plex Sans Arabic, sans-serif'; x.textAlign = 'center'; x.direction = 'rtl'; x.fillText(label, 128, 240, 210); done(); };
-    x.fillStyle = '#2E6BA9'; x.beginPath(); x.arc(128,110,96,0,7); x.fill(); ring();
-    if (!src) return; const im = new Image(); im.onload = () => { x.save(); x.beginPath(); x.arc(128,110,94,0,7); x.clip(); x.drawImage(im, 32, 14, 192, 192); x.restore(); ring(); }; im.src = src;
+    let im = null;
+    const draw = () => { x.clearRect(0, 0, 256, 256); x.fillStyle = '#2E6BA9'; x.beginPath(); x.arc(128,110,96,0,7); x.fill();
+      if (im){ x.save(); x.beginPath(); x.arc(128,110,94,0,7); x.clip(); x.drawImage(im, 32, 14, 192, 192); x.restore(); }
+      x.lineWidth = 14; x.strokeStyle = '#F2C94C'; x.beginPath(); x.arc(128,110,96,0,7); x.stroke();
+      x.fillStyle = '#12153A'; x.fillRect(18,212,220,40); x.fillStyle = '#F4F7FC'; x.font = '700 26px IBM Plex Sans Arabic, sans-serif'; x.textAlign = 'center'; x.direction = lang === 'ar' ? 'rtl' : 'ltr'; x.fillText(t(label), 128, 240, 210); done(); };
+    draw(); langHooks.push(draw);
+    if (src){ const i2 = new Image(); i2.onload = () => { im = i2; draw(); }; i2.src = src; }
   });
 }
 function iconCard(icon, label, col){
@@ -41,7 +45,7 @@ function buildWorlds(){
   const orbit = (w, list, r) => { const og = new THREE.Group(); w.add(og); list.forEach((it, k) => { const a = k/list.length*Math.PI*2, y = (k % 3 - 1) * r * 0.22;
     it.s.position.set(Math.cos(a)*r, y, Math.sin(a)*r); it.s.scale.setScalar(it.size || 5); og.add(it.s); it.w = w; spaceTap.push(it); }); return og; };
 
-  const team = orbit(moon, TEAM.map(m => ({ s: roundPhoto(m.photo, m.name.ar), act: () => openExhibit('member', m.id), size: 6.5 })), 26);
+  const team = orbit(moon, TEAM.map(m => ({ s: roundPhoto(m.photo, m.name), act: () => openExhibit('member', m.id), size: 6.5 })), 26);
   team.visible = false; worlds.push({ id: 'moon', name: L("The Planet Moon","قمر Planet"), sub: L("Where our crew lives","هنا ساكن طاقمنا"), icon: '🌕', obj: moon, r: 14, spin: team });
 
   const ring = makeWorld(0xE76F51, 11, new THREE.Vector3(-230, 60, 190), true);

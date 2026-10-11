@@ -905,12 +905,14 @@ canvas.addEventListener('pointermove', e => { if (e.pointerId !== drag.id) retur
 canvas.addEventListener('wheel', e => { if (state !== 'play') return; camDist = clamp(camDist + e.deltaY*0.006, 3.5, 13); e.preventDefault(); }, { passive: false });
 
 /* ---------- UI: language, hud, journal ---------- */
+const langHooks = [];   // canvas labels baked into 3D sprites redraw themselves here when the language changes
 function applyLang(){
   document.body.classList.toggle('ar', lang === 'ar');
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'; document.documentElement.lang = lang;
   $('lang').textContent = lang === 'ar' ? 'EN' : 'عربي';
   document.querySelectorAll('[data-t]').forEach(el => { const v = UI[el.dataset.t]; if (v) el.innerHTML = t(v); });   // a missing key (stale cached file) must not stop the game from starting
   $('keys').innerHTML = t(UI.keys);
+  langHooks.forEach(f => f());
   updateHud(); if (dlg.active) renderLine(true); if (state === 'journal') renderJournal(); if (state === 'exhibit' && xRender) xRender();
 }
 $('lang').onclick = () => { Sfx.click(); lang = lang === 'en' ? 'ar' : 'en'; store.set('pm-lang', lang); applyLang(); };

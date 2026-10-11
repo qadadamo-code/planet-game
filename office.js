@@ -56,27 +56,27 @@ const WELCOME = {
 
 /* each person speaks in the voice of their job */
 function crewLines(m){
-  const ar = lang === 'ar', nm = t(m.name), first = nm.split(' ')[0], d = m.dept;
+  const fe = m.name.en.split(' ')[0], fa = m.name.ar.split(' ')[0], d = m.dept;
   const S = {
     management: [L(`Hello and welcome! I'm ${m.name.en}, ${m.title.en}.`, `أهلاً وسهلاً! أنا ${m.name.ar}، ${m.title.ar}.`),
                  L("My job is to make sure your project has one plan, one team and one person you can always reach.", "شغلي إن مشروعك يكون ليه خطة واحدة، وفريق واحد، وشخص واحد تقدر توصله دايماً.")],
-    account_management: [L(`Hi! ${first} from accounts 😊`, `أهلاً! ${first} من فريق الحسابات 😊`),
+    account_management: [L(`Hi! ${fe} from accounts 😊`, `أهلاً! ${fa} من فريق الحسابات 😊`),
                  L("I'll be your daily contact: I gather what you need, follow up with the team and keep you posted every step.", "هكون حلقة الوصل اليومية معاك: بجمع اللي محتاجه، وبتابع مع الفريق، وبطمّنك في كل خطوة.")],
-    content: [L(`Hey! I'm ${first}, I write ✍️`, `هاي! أنا ${first}، بكتب ✍️`),
+    content: [L(`Hey! I'm ${fe}, I write ✍️`, `هاي! أنا ${fa}، بكتب ✍️`),
                  L("I'll learn how your customers talk, then write your posts, captions and scripts in Arabic and English.", "هتعلّم عملاءك بيتكلموا إزاي، وبعدين أكتب بوستاتك وكابشناتك وسكريبتاتك بالعربي والإنجليزي.")],
-    graphic_design: [L(`Hi, ${first} — design 🎨`, `هاي، ${first} — تصميم 🎨`),
+    graphic_design: [L(`Hi, ${fe} — design 🎨`, `هاي، ${fa} — تصميم 🎨`),
                  L("I'll turn the idea into posts, carousels and visuals that look like you and stop the scroll.", "هحوّل الفكرة لبوستات وكاروسيل وتصاميم شبهك وبتوقّف السكرول.")],
-    motion: [L(`Yo! ${first}, motion & video 🎬`, `أهلاً! ${first}، موشن وفيديو 🎬`),
+    motion: [L(`Yo! ${fe}, motion & video 🎬`, `أهلاً! ${fa}، موشن وفيديو 🎬`),
                  L("I make things move: animated logos, reels and short videos that hold attention.", "أنا اللي بخلّي الحاجات تتحرك: لوجو متحرك وريلز وفيديوهات قصيرة بتمسك الانتباه.")],
-    video_editing: [L(`Hey, ${first} from editing ✂️`, `أهلاً، ${first} من المونتاج ✂️`),
+    video_editing: [L(`Hey, ${fe} from editing ✂️`, `أهلاً، ${fa} من المونتاج ✂️`),
                  L("I cut the footage into films and reels for every platform — colour, sound and subtitles included.", "بقطّع التصوير لأفلام وريلز لكل منصة — بالألوان والصوت والترجمة.")],
-    photography: [L(`Hi! ${first}, I shoot 📷`, `أهلاً! ${first}، بصوّر 📷`),
+    photography: [L(`Hi! ${fe}, I shoot 📷`, `أهلاً! ${fa}، بصوّر 📷`),
                  L("I'll come to you with the camera and capture your place, your product and your people.", "هاجيلك بالكاميرا وأصوّر مكانك ومنتجك والناس بتوعك.")],
-    moderation: [L(`Hello! ${first} — publishing 📅`, `أهلاً! ${first} — النشر والجدولة 📅`),
+    moderation: [L(`Hello! ${fe} — publishing 📅`, `أهلاً! ${fa} — النشر والجدولة 📅`),
                  L("Once it's approved, I schedule and publish everything on time, on every platform.", "أول ما الشغل يتعتمد، بجدوله وبنشره في معاده على كل المنصات.")],
-    finance: [L(`Welcome! ${first}, finance 📊`, `أهلاً بيك! ${first}، المالية 📊`),
+    finance: [L(`Welcome! ${fe}, finance 📊`, `أهلاً بيك! ${fa}، المالية 📊`),
                  L("I keep invoices, payments and logistics clear and simple, so you always know where things stand.", "بخلّي الفواتير والدفعات واللوجستيات واضحة وبسيطة، فتعرف كل حاجة واقفة فين.")],
-    admin: [L(`Welcome to Planet! ${first} here ☕`, `نوّرت Planet! أنا ${first} ☕`),
+    admin: [L(`Welcome to Planet! ${fe} here ☕`, `نوّرت Planet! أنا ${fa} ☕`),
                  L("Tea or coffee? I make sure every guest feels at home here.", "شاي ولا قهوة؟ أنا بتأكد إن كل ضيف حاسس إنه في بيته هنا.")],
   };
   const lines = S[d] || [L(`Hi! I'm ${m.name.en}.`, `أهلاً! أنا ${m.name.ar}.`), L(m.title.en, m.title.ar)];
@@ -94,10 +94,15 @@ function faceTex(src){
   return tx;
 }
 function labelSprite(text, col = '#12153A', border = '#8FB4E3', w = 512){
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = 96; const x = cv.getContext('2d');
-  x.fillStyle = col; x.strokeStyle = border; x.lineWidth = 6; x.beginPath(); x.roundRect ? x.roundRect(4,4,w-8,88,44) : x.rect(4,4,w-8,88); x.fill(); x.stroke();
-  x.fillStyle = '#F4F7FC'; x.font = '700 46px IBM Plex Sans Arabic, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; x.fillText(text, w/2, 50, w - 40);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthTest: false })); s.renderOrder = 5; s.scale.set(w/96*0.42, 0.42, 1); return s;
+  // text may be a plain string or a bilingual L(); bilingual labels redraw when the language changes
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = 96; const x = cv.getContext('2d'), tx = new THREE.CanvasTexture(cv);
+  const paint = () => { x.clearRect(0, 0, w, 96);
+    x.fillStyle = col; x.strokeStyle = border; x.lineWidth = 6; x.beginPath(); x.roundRect ? x.roundRect(4,4,w-8,88,44) : x.rect(4,4,w-8,88); x.fill(); x.stroke();
+    const txt = typeof text === 'string' ? text : typeof text === 'function' ? text() : t(text);
+    x.fillStyle = '#F4F7FC'; x.font = '700 46px IBM Plex Sans Arabic, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = lang === 'ar' ? 'rtl' : 'ltr'; x.fillText(txt, w/2, 50, w - 40);
+    tx.needsUpdate = true; };
+  paint(); if (typeof text !== 'string') langHooks.push(paint);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 5; s.scale.set(w/96*0.42, 0.42, 1); return s;
 }
 function box(w, h, d, color, x, y, z, ink = true){ const m = mesh(new THREE.BoxGeometry(w, h, d), color, ink ? 1 : 0); m.position.set(x, y, z); oGroup.add(m); return m; }
 
@@ -162,7 +167,7 @@ function buildOffice(){
     fl.position.set(c.x, 0.03, c.z); oGroup.add(fl);
     [[x0, y0, x1, y0], [x1, y0, x1, y1], [x0, y1, x1, y1], [x0, y0, x0, y1]].forEach(seg => wallWithDoors(seg, R.c));
     if (R.sealed){ box(w, 0.06, d, 0xE4E0D8, c.x, WALL_H + 0.02, c.z); oBlock(x0, y0, x1, y1); }
-    if (!R.hide){ const lb = labelSprite(t(R.n), '#12153A', '#' + R.c.toString(16).padStart(6, '0')); lb.position.copy(P3(R.id === 'entry' ? 6 : (x0 + x1)/2, R.id === 'entry' ? 12.2 : (y0 + y1)/2, 2.6)); oGroup.add(lb); }
+    if (!R.hide){ const lb = labelSprite(R.n, '#12153A', '#' + R.c.toString(16).padStart(6, '0')); lb.position.copy(P3(R.id === 'entry' ? 6 : (x0 + x1)/2, R.id === 'entry' ? 12.2 : (y0 + y1)/2, 2.6)); oGroup.add(lb); }
   }
   const work = WORK.flatMap(w => w.imgs).map(s2 => 'img/' + s2), pic = k => work[k % work.length];
 
@@ -235,12 +240,12 @@ function buildOffice(){
     const n = parseInt(id.slice(4)), girl = [2,5,6,7,8,9,10,14,17,19,21,22,24].includes(n);
     const p = person(n * 3, { face: faceTex(m.photo), look: girl ? (n % 2 ? 3 : 5) : [0, 4, 1][n % 3], logo: logoTex(PLANET_C) });
     p.position.copy(P3(x, y)); p.rotation.y = 0; oGroup.add(p);
-    const tag = labelSprite(t(m.name)); tag.position.copy(P3(x, y, 2.15)); oGroup.add(tag);
+    const tag = labelSprite(m.name); tag.position.copy(P3(x, y, 2.15)); oGroup.add(tag);
     oSeats.push({ m, g: p, x, y, tag });
   }
   // the front door, glowing
   const door = P3(19, 12); const glow = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.2, 1.4), new THREE.MeshBasicMaterial({ color: 0xF2C94C, transparent: true, opacity: 0.6 })); glow.position.set(door.x + 0.05, 1.1, door.z); oGroup.add(glow);
-  const ex = labelSprite(lang === 'ar' ? '🚪 الخروج للكوكب' : '🚪 Back to the planet', '#F2C94C', '#12153A', 560); ex.position.set(door.x - 0.6, 2.7, door.z); oGroup.add(ex);
+  const ex = labelSprite(L('🚪 Back to the planet', '🚪 الخروج للكوكب'), '#F2C94C', '#12153A', 560); ex.position.set(door.x - 0.6, 2.7, door.z); oGroup.add(ex);
   // warm lights: one overall, and a soft pool over management and each team room
   const l = new THREE.PointLight(0xFFF1D6, 0.6, 40); l.position.copy(P3(9.5, 6.7, 9)); oGroup.add(l);
   [[15.2, 8.1, 0.45], [5.9, 8.1, 0.3], [15.6, 1.9, 0.3]].forEach(([x, y, k]) => { const pl = new THREE.PointLight(0xFFE2B0, k, 9); pl.position.copy(P3(x, y, 3.2)); oGroup.add(pl); });
