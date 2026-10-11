@@ -1113,7 +1113,7 @@ function interact(tk){
   if (tk.kind === 'board') return openExhibit('client', tk.ref.logo || tk.ref.name.en);
   if (tk.kind === 'emp') return talkToCrew(tk.ref);
   if (tk.kind === 'car') return mountCar(tk.ref);
-  if (tk.kind === 'rocket') return talk(L('Planet Rocket','صاروخ Planet'), [L("Fuelled and ready. Seven worlds orbit Planet: the Moon where our crew lives, the Clients' Ring, the Academy, the Gallery of our work, the Services station, a whole planet for Fly 29 — and the Star Catcher, if you fancy a game.", "الوقود مليان. فيه سبع عوالم حوالين Planet: القمر اللي ساكن فيه طاقمنا، وحلقة العملاء، والأكاديمية، ومعرض شغلنا، ومحطة الخدمات، وكوكب كامل لـ Fly 29 — وكوكب صيد النجوم لو عايز تلعب.")], true, () => startLaunch());
+  if (tk.kind === 'rocket') return talk(L('Planet Rocket','صاروخ Planet'), [L("Fuelled and ready. Seven worlds orbit Planet: the Moon where our crew lives, the Clients' Ring, the Academy, the Gallery of our work, the Services station, Voyage Planet with its runway and planes — and the Star Catcher, if you fancy a game.", "الوقود مليان. فيه سبع عوالم حوالين Planet: القمر اللي ساكن فيه طاقمنا، وحلقة العملاء، والأكاديمية، ومعرض شغلنا، ومحطة الخدمات، وكوكب الرحلات بمطاره وطياراته — وكوكب صيد النجوم لو عايز تلعب.")], true, () => startLaunch());
   if (tk.kind === 'walker'){ tk.ref.pause = 6; const c = tk.ref.c; return talk(c ? c.name : L('Townsperson', 'واحد من سكان الكوكب'), [tk.ref.line], true, c ? () => openExhibit('client', c.logo) : null); }
   const p = tk.ref;
   if (p.svc && !p.done){

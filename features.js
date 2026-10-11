@@ -364,7 +364,7 @@ function buildFlyWorld(){
   items.push({ s: actionCard('💬', L('A plan like this', 'خطة زي دي'), '#C9F0D2'), act: () => waOpen(AR() ? 'أهلاً Planet 👋 شفت كوكب Fly 29 وعايز خطة زيها لشركتي' : 'Hi Planet 👋 I saw the Fly 29 planet and want a plan like that for my business'), size: 5.2 });
   items.forEach((it, k) => { const a = k / items.length * Math.PI * 2; it.s.position.set(Math.cos(a) * 20, (k % 3 - 1) * 4, Math.sin(a) * 20); it.s.scale.setScalar(it.size); og.add(it.s); it.w = wld; spaceTap.push(it); });
   og.visible = false;
-  worlds.push({ id: 'fly29', name: L('Planet Fly 29', 'كوكب Fly 29'), sub: L('A whole world for one client', 'عالم كامل لعميل واحد'), icon: '✈️', obj: wld, r: 9, spin: og,
+  worlds.push({ id: 'fly29', name: L('Voyage Planet', 'كوكب الرحلات'), sub: L('Runways, planes and summer trips', 'مطار وطيارات ورحلات الصيف'), icon: '✈️', obj: wld, r: 9, spin: og,
     tip: L('Fly 29 is a travel brand we market — planes, trips and the ads that fill them', 'Fly 29 شركة سفر بنسوّق لها — طيارات ورحلات والإعلانات اللي بتملاها') });
 }
 { const plainBW = buildWorlds; buildWorlds = function(){ plainBW(); buildFlyWorld(); }; if (worlds.length) buildFlyWorld(); }
