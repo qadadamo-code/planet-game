@@ -85,7 +85,10 @@ function crewLines(m){
 
 let inOffice = false, officeBuilt = false, oPos = new THREE.Vector2(10.3, 12.4), oYaw = Math.PI, oRoom = null, oWelcomed = new Set(), oNear = null;
 const oWalls = [], oSeats = [], oGroup = new THREE.Group(); oGroup.position.copy(OFF);
-const P3 = (x, y, h = 0) => new THREE.Vector3(x - PW/2, h, y - PH/2);
+/* the plan is in metres; the built office is drawn larger than the plan (OS) so rooms feel roomy —
+   furniture keeps its real size, so the extra space shows up as room to walk around */
+const OS = 1.4;
+const P3 = (x, y, h = 0) => new THREE.Vector3((x - PW/2) * OS, h, (y - PH/2) * OS);
 
 function faceTex(src){
   const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d'), tx = new THREE.CanvasTexture(cv);
@@ -176,7 +179,7 @@ function oPlant(x, y, s = 1){
 }
 function oRug(x0, y0, x1, y1, col, border = 0xF2C94C){
   const c = oAt((x0 + x1)/2, (y0 + y1)/2);
-  box(x1 - x0, 0.02, y1 - y0, border, c.x, 0.075, c.z, false); box(x1 - x0 - 0.16, 0.022, y1 - y0 - 0.16, col, c.x, 0.08, c.z, false);
+  box((x1 - x0)*OS, 0.02, (y1 - y0)*OS, border, c.x, 0.075, c.z, false); box((x1 - x0)*OS - 0.16, 0.022, (y1 - y0)*OS - 0.16, col, c.x, 0.08, c.z, false);
 }
 /* a picture on a north wall (faces the camera); src is an image path */
 function oFrame(x, y, w, h, src, z = 0.78){
@@ -196,22 +199,22 @@ function oFrameW(x, y, w, h, src, z = 0.78){
 }
 function oLamp(x, y){ const p = oAt(x, y); box(0.3, 0.05, 0.3, 0x2B2420, p.x, 0.03, p.z, false); box(0.04, 1.3, 0.04, 0x2B2420, p.x, 0.68, p.z, false);
   const sh = mesh(new THREE.CylinderGeometry(0.14, 0.24, 0.26, 12), 0xFFF1D6); sh.position.set(p.x, 1.42, p.z); oGroup.add(sh); oBlock(x - 0.15, y - 0.15, x + 0.15, y + 0.15); }
-function oShelf(x0, x1, y){ const w = x1 - x0, p = oAt((x0 + x1)/2, y);
+function oShelf(x0, x1, y){ const w = (x1 - x0)*OS, p = oAt((x0 + x1)/2, y);
   box(w, 1.2, 0.32, 0xB5835A, p.x, 0.6, p.z); [0.35, 0.7, 1.05].forEach(h => box(w - 0.08, 0.04, 0.3, 0x8A5E3B, p.x, h, p.z + 0.02, false));
   const cols = [0xE76F51, 0x2E6BA9, 0xF2C94C, 0x3E8E7E, 0x8E6BC2, 0xE9A0B8];
-  for (let i = 0, k = 0; i < w - 0.2; i += 0.11, k++) [0.48, 0.83].forEach((h, r) => { if ((k + r) % 4 === 3) return; box(0.08, 0.22, 0.2, cols[(k + r*2) % cols.length], oAt(x0 + 0.12 + i, y).x, h, p.z + 0.02, false); });
+  for (let i = 0, k = 0; i < w - 0.2; i += 0.11, k++) [0.48, 0.83].forEach((h, r) => { if ((k + r) % 4 === 3) return; box(0.08, 0.22, 0.2, cols[(k + r*2) % cols.length], p.x - w/2 + 0.12 + i, h, p.z + 0.02, false); });
   oBlock(x0, y - 0.18, x1, y + 0.18); }
 
 function buildOffice(){
   officeBuilt = true; scene.add(oGroup);
-  box(PW + 0.6, 0.4, PH + 0.6, 0x1B2150, 0, -0.2, 0);
+  box(PW*OS + 0.6, 0.4, PH*OS + 0.6, 0x1B2150, 0, -0.2, 0);
   for (const R of ROOMS){
     const [x0, y0, x1, y1] = R.r, w = x1 - x0, d = y1 - y0, c = P3((x0 + x1)/2, (y0 + y1)/2);
-    const [kind, base] = FLOOR[R.id] || ['tile', 0xDCD6CC], tx = oFloorTex(kind, base); tx.repeat.set(w / (kind === 'tile' ? 1.6 : 2.2), d / (kind === 'tile' ? 1.6 : 2.2));
-    const fl = new THREE.Mesh(new THREE.BoxGeometry(w - 0.04, 0.06, d - 0.04), new THREE.MeshToonMaterial({ color: 0xffffff, map: tx, gradientMap: grad }));
+    const [kind, base] = FLOOR[R.id] || ['tile', 0xDCD6CC], tx = oFloorTex(kind, base); tx.repeat.set(w*OS / (kind === 'tile' ? 1.6 : 2.2), d*OS / (kind === 'tile' ? 1.6 : 2.2));
+    const fl = new THREE.Mesh(new THREE.BoxGeometry(w*OS - 0.04, 0.06, d*OS - 0.04), new THREE.MeshToonMaterial({ color: 0xffffff, map: tx, gradientMap: grad }));
     fl.position.set(c.x, 0.03, c.z); oGroup.add(fl);
     [[x0, y0, x1, y0], [x1, y0, x1, y1], [x0, y1, x1, y1], [x0, y0, x0, y1]].forEach(seg => wallWithDoors(seg, R.c));
-    if (R.sealed){ box(w, 0.06, d, 0xE4E0D8, c.x, WALL_H + 0.02, c.z); oBlock(x0, y0, x1, y1); }
+    if (R.sealed){ box(w*OS, 0.06, d*OS, 0xE4E0D8, c.x, WALL_H + 0.02, c.z); oBlock(x0, y0, x1, y1); }
     if (!R.hide){ const lb = labelSprite(R.n, '#12153A', '#' + R.c.toString(16).padStart(6, '0')); lb.position.copy(P3(R.id === 'entry' ? 6 : (x0 + x1)/2, R.id === 'entry' ? 12.2 : (y0 + y1)/2, 2.6)); oGroup.add(lb); }
   }
   const work = WORK.flatMap(w => w.imgs).map(s2 => 'img/' + s2), pic = k => work[k % work.length];
@@ -321,7 +324,7 @@ function wallWithDoors([x0, y0, x1, y1], col){
   for (const [c0, c1] of cuts){ if (c0 > t0) pieces.push([t0, c0]); t0 = Math.max(t0, c1); } if (t0 < len) pieces.push([t0, len]);
   for (const [p0, p1] of pieces){ if (p1 - p0 < 0.05) continue;
     const a = horiz ? [x0 + p0, y0] : [x0, y0 + p0], b = horiz ? [x0 + p1, y0] : [x0, y0 + p1];
-    const mid = P3((a[0] + b[0])/2, (a[1] + b[1])/2), L2 = p1 - p0;
+    const mid = P3((a[0] + b[0])/2, (a[1] + b[1])/2), L2 = (p1 - p0)*OS;
     // warm white wall, the room's colour as a thin band at the top and a skirting at the bottom
     const m = mesh(new THREE.BoxGeometry(horiz ? L2 : 0.12, WALL_H, horiz ? 0.12 : L2), WALL_C); m.position.set(mid.x, WALL_H/2, mid.z); oGroup.add(m);
     box(horiz ? L2 : 0.14, 0.09, horiz ? 0.14 : L2, col, mid.x, WALL_H - 0.02, mid.z, false);
@@ -359,7 +362,7 @@ function officeFrame(dt, now){
   let moving = false;
   if (mag > 0.08){
     _wish.copy(_cf).multiplyScalar(iy).addScaledVector(_cr, ix).normalize();
-    const sp = (keys.ShiftLeft || keys.ShiftRight || runToggle ? 4.2 : 2.6) * mag * dt;
+    const sp = (keys.ShiftLeft || keys.ShiftRight || runToggle ? 4.2 : 2.6) * mag * dt / OS;
     const before = oPos.clone(); oPos.x += _wish.x * sp; oPos.y += _wish.z * sp; pushOut(oPos); pushOut(oPos);
     moving = oPos.distanceTo(before) > 0.002;
     const want = Math.atan2(_wish.x, _wish.z); let dA = want - oYaw; dA = Math.atan2(Math.sin(dA), Math.cos(dA)); oYaw += dA * (1 - Math.exp(-14 * dt));

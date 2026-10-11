@@ -881,9 +881,9 @@ const CHAR_YAW = 0, HQ_YAW = 0, VAN_YAW = Math.PI/2, BACKPACK_Y = 1.12, BACKPACK
 /* ---------- input ---------- */
 const keys = {};
 addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,textarea')) return;   // typing (chat, brief) never moves the player
   if (e.repeat && keys[e.code]) return;
   keys[e.code] = true;
-  if (e.target.closest && e.target.closest('input,textarea')) return;
   if (['KeyE','Enter','NumpadEnter'].includes(e.code)){ if (!(e.code !== 'KeyE' && e.target.closest && e.target.closest('a,button'))){ act(); if (state !== 'title') e.preventDefault(); } }
   if (e.code === 'Space'){ if (state === 'talk') { advance(); e.preventDefault(); } else if (state === 'play'){ jumpReq = true; e.preventDefault(); } }
   if (e.code === 'KeyJ' && (state === 'play' || state === 'journal')) toggleJournal();
