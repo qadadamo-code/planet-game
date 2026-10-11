@@ -388,6 +388,6 @@ officeFrame = function(dt, now){
   placeSitBubble();
   return r;
 };
-if (typeof myState === 'function'){ const plainMyState = myState; myState = function(){ const s = plainMyState(); if (s && inBuilding) return { i: s.i, n: s.n, c: s.c, k: s.k, w: 'b' }; return s; }; }
+if (typeof myState === 'function'){ const plainMyState = myState; myState = function(){ const s = plainMyState(); if (s && inBuilding) return { i: s.i, n: s.n, c: s.c, k: s.k, a: s.a, w: 'b', b: inBuilding.id, o: [+(sitting ? sitting.x : iPos.x).toFixed(2), +(sitting ? sitting.z : iPos.y).toFixed(2), +(sitting ? sitting.yaw : iYaw).toFixed(2)] }; return s; }; }
 (function waitDoors(){ if (state === 'loading' || !pois.length) return setTimeout(waitDoors, 400); prepDoors(); })();
 (function doorLoop(){ requestAnimationFrame(doorLoop); doorCheck(); })();

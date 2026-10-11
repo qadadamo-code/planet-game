@@ -53,9 +53,8 @@ function drawMap(ctx, size, range, big){
   // race parcels
   if (typeof RACE !== 'undefined' && RACE.on) for (const pc of RACE.parcels){ if (pc.got) continue; const [x, y, dist] = mapProject(pc.d, sc); if (dist > range) continue;
     const s = big ? 6 : 8; ctx.fillStyle = '#C98A5A'; ctx.fillRect(x - s, y - s, s * 2, s * 2); ctx.lineWidth = 2; ctx.strokeStyle = '#F2C94C'; ctx.strokeRect(x - s, y - s, s * 2, s * 2); }
-  // other visitors
-  if (typeof peers !== 'undefined') for (const p of peers.values()){ if (p.world !== 'p') continue; const [x, y, dist] = mapProject(p.pos.clone().normalize(), sc); if (dist > range) continue;
-    ctx.beginPath(); ctx.arc(x, y, big ? 6 : 8, 0, Math.PI * 2); ctx.fillStyle = '#' + new THREE.Color(p.color).getHexString(); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke(); }
+  // other visitors, live: an arrow in their colour pointing where they walk, their name, and where they are if not outside
+  if (typeof peers !== 'undefined') drawPeers(ctx, sc, range, r, big);
   // me, pointing the way I face
   _mr.crossVectors(camFwd, pDir).normalize(); const fa = Math.atan2(pFwd.dot(_mr), pFwd.dot(camFwd));
   ctx.rotate(fa); ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(10, 10); ctx.lineTo(0, 5); ctx.lineTo(-10, 10); ctx.closePath();
@@ -63,6 +62,57 @@ function drawMap(ctx, size, range, big){
   ctx.restore();
   ctx.beginPath(); ctx.arc(r, r, r - 2, 0, Math.PI * 2); ctx.lineWidth = 4; ctx.strokeStyle = '#12153A'; ctx.stroke();
   if (!big){ ctx.fillStyle = '#12153A'; ctx.font = '800 26px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('⌕', r, size - 16); }
+}
+
+/* where a visitor is on the planet's surface, even when they're inside a building or the office */
+function peerDir(p){
+  if (p.world === 'p') return p.pos.clone().normalize();
+  if (p.world === 'o') return pois[0].dir;
+  if (p.world === 'b'){ const b = pois.find(x => x.id === p.bld); return b ? b.dir : null; }
+  return null;
+}
+const _ph = new THREE.Vector3();
+function drawPeers(ctx, sc, range, r, big){
+  const now = performance.now(), followId = guide && guide.peerId;
+  for (const p of peers.values()){
+    const d = peerDir(p); if (!d) continue;
+    const [x, y, dist] = mapProject(d, sc), col = '#' + new THREE.Color(p.color).getHexString(), nm = t(visitorName(p.num, p.nick)), fol = p.id === followId;
+    if (dist > range){   // out of view: a dot on the rim in their colour
+      if (big) continue; const a = Math.atan2(y, x), rx = Math.cos(a) * (r - 14), ry = Math.sin(a) * (r - 14);
+      ctx.beginPath(); ctx.arc(rx, ry, fol ? 8 : 6, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = fol ? 3 : 2; ctx.strokeStyle = fol ? '#F2C94C' : '#fff'; ctx.stroke(); continue; }
+    // a soft pulse so you can spot people moving around
+    const pulse = (now / 900 + p.num * 0.37) % 1;
+    ctx.beginPath(); ctx.arc(x, y, (big ? 8 : 10) + pulse * (big ? 10 : 14), 0, Math.PI * 2); ctx.fillStyle = col; ctx.globalAlpha = 0.35 * (1 - pulse); ctx.fill(); ctx.globalAlpha = 1;
+    if (fol){ ctx.beginPath(); ctx.arc(x, y, big ? 13 : 16, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = '#F2C94C'; ctx.stroke(); }
+    ctx.save(); ctx.translate(x, y);
+    if (p.world === 'p'){ // which way they're facing, turned into the map's frame
+      _ph.set(0, 0, 1).applyQuaternion(p.quat); _ph.addScaledVector(d, -_ph.dot(d)); _mr.crossVectors(camFwd, pDir).normalize();
+      ctx.rotate(Math.atan2(_ph.dot(_mr), _ph.dot(camFwd)));
+      const k = big ? 0.8 : 1; ctx.beginPath(); ctx.moveTo(0, -12 * k); ctx.lineTo(9 * k, 9 * k); ctx.lineTo(0, 4 * k); ctx.lineTo(-9 * k, 9 * k); ctx.closePath();
+      ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke(); ctx.restore();
+    } else { // inside the office or a building: a little house badge
+      ctx.beginPath(); ctx.arc(0, 0, big ? 9 : 11, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+      ctx.font = `${big ? 11 : 13}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🏠', 0, 1); ctx.restore(); }
+    // their name, small, under the marker
+    if (big || dist < range * 0.75){ ctx.font = `800 ${big ? 12 : 15}px IBM Plex Sans Arabic, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.direction = /[؀-ۿ]/.test(nm) ? 'rtl' : 'ltr'; const w = ctx.measureText(nm).width + 10, ly = y + (big ? 22 : 27);
+      ctx.fillStyle = 'rgba(18,21,58,.82)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - w/2, ly - (big ? 12 : 15), w, big ? 16 : 20, 8) : ctx.rect(x - w/2, ly - 14, w, 18); ctx.fill();
+      ctx.fillStyle = col === '#12153a' ? '#F4F7FC' : col; ctx.fillText(nm, x, ly); ctx.direction = 'ltr'; }
+  }
+}
+/* follow a visitor: the compass and the yellow route lead to wherever they are now */
+function followPeer(id){
+  const p = peers.get(id); if (!p) return;
+  guide = { peerId: id, r: 2.5, name: visitorName(p.num, p.nick),
+    get dir(){ const q = peers.get(id), d = q && peerDir(q); return d || pDir.clone(); },
+    get i(){ return poiDist(this.dir)[1]; } };
+  mapRouteFor = null; Sfx.click(); mini((lang === 'ar' ? '👣 بتتابع ' : '👣 Following ') + t(guide.name));
+}
+function followFrame(){
+  if (!guide || !guide.peerId) return;
+  const p = peers.get(guide.peerId);
+  if (!p || p.world === 's'){ mini(lang === 'ar' ? '👣 الزائر اللي بتتابعه مشي' : '👣 The visitor you were following left'); guide = null; return; }
+  if (state === 'play' && p.world === 'p' && pDir.angleTo(peerDir(p)) * R < 4){ mini(lang === 'ar' ? `👋 وصلت عند ${t(guide.name)}` : `👋 You caught up with ${t(guide.name)}`); guide = null; }
 }
 
 /* shortest road route (Dijkstra over the planet's road graph) from the place nearest me to the target */
@@ -84,9 +134,9 @@ function mapFrame(now){
   if (!show && !bigOpen) return;
   if (++mapTick % 2) return;   // 30 fps is plenty for a map
   const tgt = guide;
-  if (tgt !== mapRouteFor || (tgt && now - mapRouteAt > 1500)){ mapRouteFor = tgt; mapRouteAt = now; mapRoute = tgt ? routeTo(tgt) : []; }
+  followFrame(); if (tgt !== mapRouteFor || (tgt && now - mapRouteAt > (tgt.peerId ? 600 : 1500))){ mapRouteFor = tgt; mapRouteAt = now; mapRoute = tgt ? routeTo(tgt) : []; }
   if (show) drawMap(c.getContext('2d'), c.width, MAP.range, false);
-  if (bigOpen) drawMap(document.getElementById('bigmapc').getContext('2d'), 560, MAP.bigRange, true);
+  if (bigOpen){ drawMap(document.getElementById('bigmapc').getContext('2d'), 560, MAP.bigRange, true); if (mapTick % 60 === 0 && document.activeElement !== document.getElementById('bmsearch')) renderPlaceList(); }
 }
 
 function openBigMap(){
@@ -109,12 +159,21 @@ function closeBigMap(){ const b = document.getElementById('bigmap'); if (b) b.hi
 function paintBigMap(){
   const box = document.getElementById('bigmap');
   box.querySelector('[data-m="title"]').textContent = lang === 'ar' ? '🗺️ خريطة الكوكب' : '🗺️ Planet map';
-  box.querySelector('[data-m="sub"]').textContent = lang === 'ar' ? 'اختار مكان وهنوريك الطريق — البوصلة والخط الأصفر هيوصلوك' : 'Pick a place and we\'ll show you the way — follow the compass and the yellow line';
+  box.querySelector('[data-m="sub"]').textContent = lang === 'ar' ? 'اختار مكان أو زائر وهنوريك الطريق — البوصلة والخط الأصفر هيوصلوك' : 'Pick a place or a visitor and we\'ll show you the way — follow the compass and the yellow line';
   document.getElementById('bmsearch').placeholder = lang === 'ar' ? '🔎 دوّر على مكان أو عميل…' : '🔎 Search a place or client…';
   renderPlaceList();
 }
 function renderPlaceList(){
   const q = (document.getElementById('bmsearch').value || '').trim().toLowerCase(), list = document.getElementById('bmlist'); list.textContent = '';
+  if (typeof peers !== 'undefined' && peers.size){
+    const h = document.createElement('h5'); h.textContent = lang === 'ar' ? `👥 الزوار دلوقتي (${peers.size})` : `👥 Visitors now (${peers.size})`; list.appendChild(h);
+    for (const p of peers.values()){ const nm = t(visitorName(p.num, p.nick)); if (q && !nm.toLowerCase().includes(q)) continue;
+      const d = peerDir(p), b = document.createElement('button'); b.type = 'button'; b.className = 'bm-place' + (guide && guide.peerId === p.id ? ' on' : '');
+      const dot = document.createElement('i'); dot.style.background = '#' + new THREE.Color(p.color).getHexString(); const sp = document.createElement('span'); sp.textContent = nm;
+      const sm = document.createElement('small'); const bld = p.world === 'b' && pois.find(x => x.id === p.bld);
+      sm.textContent = p.world === 's' ? (lang === 'ar' ? '🚀 في الفضاء' : '🚀 in space') : p.world === 'o' ? (lang === 'ar' ? '🏢 في المكتب' : '🏢 in the office') : bld ? '🏠 ' + t(bld.name) : d ? `${Math.round(pDir.angleTo(d) * R * 2)} m · 👣` : '';
+      b.append(dot, sp, sm); b.onclick = () => { if (p.world === 's') return mini(lang === 'ar' ? '🚀 الزائر ده في الفضاء — اطلع بالصاروخ' : '🚀 They are in space — take the rocket'); followPeer(p.id); closeBigMap(); };
+      list.appendChild(b); } }
   const groups = [[lang === 'ar' ? '🏢 Planet' : '🏢 Planet', pois.filter(p => !p.district)], ...Object.entries(DISTRICTS).map(([dk, D]) => [`${D.icon} ${t(D.name)}`, pois.filter(p => p.district === dk)])];
   for (const [title, ps] of groups){
     const hits = ps.filter(p => !q || p.name.en.toLowerCase().includes(q) || p.name.ar.includes(q)); if (!hits.length) continue;

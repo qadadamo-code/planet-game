@@ -71,7 +71,7 @@ body.ar .tbtn{font-family:var(--ar);font-size:15px}
 
 /* HUD */
 #hud{padding:calc(14px + env(safe-area-inset-top,0px)) 14px 14px;z-index:20}
-.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 170px)}
+#hud .bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 170px)}
 .chip{display:flex;align-items:center;gap:8px;padding:6px 11px;font-weight:700;font-size:13px}
 .chip img{height:22px;display:block}
 .pips{display:flex;gap:3px}
@@ -226,7 +226,7 @@ body.ar .facts{font-size:16px}
 .toast small{display:block;font-size:.5em;color:var(--paper);margin-top:4px}
 body.ar .toast{font-family:var(--ar)}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%)}}
-.mini{position:fixed;inset-inline-start:50%;top:calc(116px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:rgba(18,21,58,.88);border:2px solid var(--gold);color:var(--paper);border-radius:999px;padding:6px 14px;font-weight:700;font-size:13px;z-index:24;animation:fadeio 2.6s ease forwards;pointer-events:none;white-space:nowrap}
+.mini{position:fixed;left:50%;top:calc(116px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:rgba(18,21,58,.88);border:2px solid var(--gold);color:var(--paper);border-radius:999px;padding:6px 14px;font-weight:700;font-size:13px;z-index:24;animation:fadeio 2.6s ease forwards;pointer-events:none;white-space:nowrap}
 body.ar .mini{font-size:15px}
 @keyframes fadeio{0%{opacity:0}10%,80%{opacity:1}100%{opacity:0}}
 /* ---------- in-game showcases ---------- */
@@ -396,7 +396,7 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 .steps{margin:0;padding-inline-start:22px;display:grid;gap:12px;font-size:17px;line-height:1.6}
 /* phones held upright: tools keep the top row, the score chips get their own row below, the compass a third */
 @media (max-width:640px){
-  .bar{position:fixed;top:calc(62px + env(safe-area-inset-top,0px));inset-inline-start:12px;max-width:calc(100% - 24px);flex-wrap:nowrap;gap:6px}
+  #hud .bar{position:fixed;top:calc(62px + env(safe-area-inset-top,0px));inset-inline-start:12px;max-width:calc(100% - 24px);flex-wrap:nowrap;gap:6px}
   .chip{padding:5px 8px;gap:5px;font-size:12px}.chip img{height:18px}.pips{display:none}
   .compass{top:calc(108px + env(safe-area-inset-top,0px));font-size:12px;padding:5px 12px 5px 6px}
   .mini{top:calc(152px + env(safe-area-inset-top,0px));max-width:calc(100% - 24px);white-space:normal;text-align:center}
@@ -410,6 +410,28 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 #sitbubble .sb-chips button{border:0;border-radius:999px;padding:6px 10px;background:#2E6BA9;color:#fff;font:600 12.5px inherit;font-family:inherit;cursor:pointer}
 #sitbubble .sb-row{display:flex;gap:6px}
 #sitbubble .sb-row button{flex:1;border:1px solid #C9CED8;border-radius:10px;padding:7px;background:#fff;font:600 12.5px inherit;font-family:inherit;cursor:pointer}
+/* avatar, walls, mission, leaderboard */
+.avh{display:block;text-align:start;font-size:14px;margin-top:2px}
+.avrow{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start}
+.avc{border:2px solid var(--ink);background:#fff;color:var(--ink);border-radius:999px;padding:5px 10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.avc.on{background:var(--gold)}
+.bdg{background:#eef2fa;border-radius:999px;padding:5px 10px;font-size:13px;font-weight:700}
+.bdg-big{font-size:64px;line-height:1}
+.wl-form{display:flex;gap:8px}.wl-form input{flex:1;min-width:0}.wl-form .xm-go{flex:none;padding-inline:16px}
+.wl-list{display:grid;gap:8px;text-align:start;max-height:42vh;overflow-y:auto}
+.wl-m{background:#FFF8E0;border:2px solid #f0e2b0;border-radius:10px;padding:8px 10px;display:grid;gap:2px}
+.wl-m b{font-size:13px}.wl-m span{font-weight:600;line-height:1.5;overflow-wrap:anywhere}.wl-m small{color:#8a93ad;font-size:11px}
+#missionchip{position:fixed;top:calc(266px + env(safe-area-inset-top,0px));inset-inline-end:14px;z-index:21;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font:inherit;font-weight:800;font-size:13px;cursor:pointer;max-width:220px;white-space:nowrap}
+#missionchip[hidden]{display:none}#missionchip b{font-size:12px;background:var(--gold);border-radius:999px;padding:1px 7px}
+.ms-steps{text-align:start;margin:0;padding-inline-start:4px;list-style:none;display:grid;gap:8px}
+.ms-steps li{background:#f3f5fa;border-radius:10px;padding:8px 10px;font-weight:700;line-height:1.5}.ms-steps li.now{background:#FFF3C8}.ms-steps li.ok{opacity:.65}.ms-steps small{color:#5a6688;font-weight:600}
+.lb-tabs{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.lb-tabs button{border:2px solid var(--ink);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-weight:800;font-size:13px;cursor:pointer}.lb-tabs button.on{background:var(--gold)}
+.lb-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.lb-list li{display:flex;align-items:center;gap:10px;background:#f3f5fa;border-radius:10px;padding:8px 12px;font-weight:700}
+.lb-list li.me{background:#FFF3C8}.lb-list li i{font-style:normal;width:28px}.lb-list li span{flex:1;text-align:start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lb-list li b{font-size:17px}
+#voicebtn.off{opacity:.7}
+@media (max-width:640px){#missionchip{top:calc(298px + env(safe-area-inset-top,0px));font-size:12px;padding:5px 9px;max-width:170px}#missionchip span{display:none}}
 </style>
 </head>
 <body class="ar">
@@ -509,16 +531,17 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js?v=15"></script>
-<script src="site-data.js?v=15"></script>
-<script src="game.js?v=15"></script>
-<script src="exhibit.js?v=15"></script>
-<script src="space.js?v=15"></script>
-<script src="office.js?v=15"></script>
+<script src="content.js?v=17"></script>
+<script src="site-data.js?v=17"></script>
+<script src="game.js?v=17"></script>
+<script src="exhibit.js?v=17"></script>
+<script src="space.js?v=17"></script>
+<script src="office.js?v=17"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="net.js?v=15"></script>
-<script src="interiors.js?v=15"></script>
-<script src="extras.js?v=15"></script>
-<script src="map.js?v=15"></script>
+<script src="net.js?v=17"></script>
+<script src="interiors.js?v=17"></script>
+<script src="extras.js?v=17"></script>
+<script src="features.js?v=17"></script>
+<script src="map.js?v=17"></script>
 </body>
 </html>

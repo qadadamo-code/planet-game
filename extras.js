@@ -43,7 +43,7 @@ function openProfile(after){
 /* the people panel: who's here, plus the things you can do together */
 function openPeople(){
   const list = [...peers.values()];
-  const where = p => p.world === 'o' ? (AR() ? 'في المكتب' : 'in the office') : p.world === 's' ? (AR() ? 'في الفضاء' : 'in space') : (AR() ? 'على الكوكب' : 'on the planet');
+  const where = p => { const b = p.world === 'b' && pois.find(x => x.id === p.bld); return p.world === 'o' ? (AR() ? 'في المكتب' : 'in the office') : p.world === 's' ? (AR() ? 'في الفضاء' : 'in space') : b ? (AR() ? 'جوّه ' : 'inside ') + t(b.name) : (AR() ? 'على الكوكب' : 'on the planet'); };
   const box = xModal('peoplebox', `<h3>👥 ${AR() ? `على الكوكب دلوقتي (${list.length + 1})` : `On the planet now (${list.length + 1})`}</h3>
     <div class="pplist"><div class="pp me"><i style="background:${hexCss(netColor)}"></i><b>${AR() ? 'إنت' : 'You'}</b><span id="ppme"></span></div>
       ${list.map(p => `<div class="pp"><i style="background:${hexCss(p.color)}"></i><b data-n="${p.id}"></b><span>${where(p)}</span></div>`).join('')}</div>

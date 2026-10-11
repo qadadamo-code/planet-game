@@ -1112,7 +1112,7 @@ function interact(tk){
   if (tk.kind === 'board') return openExhibit('client', tk.ref.logo || tk.ref.name.en);
   if (tk.kind === 'emp') return talkToCrew(tk.ref);
   if (tk.kind === 'car') return mountCar(tk.ref);
-  if (tk.kind === 'rocket') return talk(L('Planet Rocket','صاروخ Planet'), [L("Fuelled and ready. Six worlds orbit Planet: the Moon where our crew lives, the Clients' Ring, the Academy, the Gallery of our work, the Services station — and the Star Catcher, if you fancy a game.", "الوقود مليان. فيه ست عوالم حوالين Planet: القمر اللي ساكن فيه طاقمنا، وحلقة العملاء، والأكاديمية، ومعرض شغلنا، ومحطة الخدمات — وكوكب صيد النجوم لو عايز تلعب.")], true, () => startLaunch());
+  if (tk.kind === 'rocket') return talk(L('Planet Rocket','صاروخ Planet'), [L("Fuelled and ready. Seven worlds orbit Planet: the Moon where our crew lives, the Clients' Ring, the Academy, the Gallery of our work, the Services station, a whole planet for Fly 29 — and the Star Catcher, if you fancy a game.", "الوقود مليان. فيه سبع عوالم حوالين Planet: القمر اللي ساكن فيه طاقمنا، وحلقة العملاء، والأكاديمية، ومعرض شغلنا، ومحطة الخدمات، وكوكب كامل لـ Fly 29 — وكوكب صيد النجوم لو عايز تلعب.")], true, () => startLaunch());
   if (tk.kind === 'walker'){ tk.ref.pause = 6; const c = tk.ref.c; return talk(c ? c.name : L('Townsperson', 'واحد من سكان الكوكب'), [tk.ref.line], true, c ? () => openExhibit('client', c.logo) : null); }
   const p = tk.ref;
   if (p.svc && !p.done){
@@ -1312,7 +1312,8 @@ function frame(now){
     if (state === 'play'){
       near = findNear();
       $('prompt').hidden = !near;
-      if (near){ const nm = near.kind === 'poi' ? t(near.ref.name) : near.kind === 'stone' ? t(L(STONES[near.ref].en[0], STONES[near.ref].ar[0])) : near.kind === 'board' ? t(near.ref.name) : near.kind === 'car' ? (lang === 'ar' ? 'عربية Planet' : 'the Planet car') : near.kind === 'rocket' ? (lang === 'ar' ? 'صاروخ Planet' : 'the Planet rocket') : (near.kind === 'walker' && near.ref.c ? (lang === 'ar' ? 'واحد من ' : 'someone from ') + t(near.ref.c.name) : t(L('Townsperson','واحد من السكان')));
+      if (near && near.label) $('promptText').textContent = t(near.label);
+      else if (near){ const nm = near.kind === 'poi' ? t(near.ref.name) : near.kind === 'stone' ? t(L(STONES[near.ref].en[0], STONES[near.ref].ar[0])) : near.kind === 'board' ? t(near.ref.name) : near.kind === 'car' ? (lang === 'ar' ? 'عربية Planet' : 'the Planet car') : near.kind === 'rocket' ? (lang === 'ar' ? 'صاروخ Planet' : 'the Planet rocket') : (near.kind === 'walker' && near.ref.c ? (lang === 'ar' ? 'واحد من ' : 'someone from ') + t(near.ref.c.name) : t(L('Townsperson','واحد من السكان')));
         $('promptText').textContent = `${near.kind === 'stone' ? t(UI.visit) : near.kind === 'board' ? (lang === 'ar' ? 'شوف شغل' : 'See work for') : near.kind === 'car' || near.kind === 'rocket' ? (lang === 'ar' ? 'اركب' : 'Ride') : near.kind === 'poi' && near.ref.id === 'hq' ? (lang === 'ar' ? 'ادخل' : 'Enter') : t(UI.talk)} ${nm}`; }
       // discovery
       const [pd, pi] = poiDist(pDir);

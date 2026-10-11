@@ -79,6 +79,8 @@ function onPeerState(p){
     const vis = peer.body.visible, nb = person(peer.num, { shirt: peer.color, logo: logoTex(PLANET_C) }); nb.scale.setScalar(1.15); nb.visible = vis; peer.g.remove(peer.body); peer.g.add(nb); peer.body = nb; }
   if (p.w === 'p' && p.p){ peer.tPos.fromArray(p.p); peer.tQuat.fromArray(p.q); }
   if (p.w === 'o' && p.o){ peer.tPos.copy(OFF).add(P3(p.o[0], p.o[1])); peer.tQuat.setFromEuler(new THREE.Euler(0, p.o[2], 0)); }
+  peer.bld = p.w === 'b' ? p.b : null;
+  if (p.w === 'b' && p.o && typeof INT_OFF !== 'undefined'){ peer.tPos.copy(INT_OFF).add(new THREE.Vector3(p.o[0], 0, p.o[1])); peer.tQuat.setFromEuler(new THREE.Euler(0, p.o[2], 0)); }
   if (!peer.g.visible && p.w !== 's'){ peer.pos.copy(peer.tPos); peer.quat.copy(peer.tQuat); }
   const riding = !!p.r;
   if (riding !== peer.riding){ peer.riding = riding;
@@ -98,7 +100,7 @@ function myState(){
 function netTick(now){
   if (!netLive) return;
   const s = myState(); if (!s) return;
-  const key = JSON.stringify([s.w, s.p, s.q, s.o, s.r, s.k, s.ps, s.sw, s.f, s.c]);
+  const key = JSON.stringify([s.w, s.p, s.q, s.o, s.r, s.k, s.ps, s.sw, s.f, s.c, s.a, s.b]);
   const due = key !== netLastKey ? NET.sendMs : NET.idleMs;
   if (now - netLastSend < due) return;
   netLastSend = now; netLastKey = key;
@@ -110,14 +112,14 @@ function netFrame(now){
   requestAnimationFrame(netFrame);
   const dt = Math.min(0.1, (now - netPrev) / 1000); netPrev = now;
   netTick(now);
-  const meWorld = (typeof inSpace !== 'undefined' && inSpace) ? 's' : (typeof inOffice !== 'undefined' && inOffice) ? 'o' : 'p';
+  const meWorld = (typeof inSpace !== 'undefined' && inSpace) ? 's' : (typeof inOffice !== 'undefined' && inOffice) ? 'o' : (typeof inBuilding !== 'undefined' && inBuilding) ? 'b' : 'p';
   for (const peer of [...peers.values()]){
     if (now - peer.last > NET.dropMs){ removePeer(peer.id); continue; }
     // in space: a little rocket orbiting the same world as me
     if (peer.world === 's' && meWorld === 's'){ peer.g.visible = false; placeSpaceRocket(peer, now); continue; }
     if (peer.space) peer.space.visible = false;
     // only show visitors who are in the same place as me
-    peer.g.visible = peer.world !== 's' && peer.world === meWorld;
+    peer.g.visible = peer.world !== 's' && peer.world === meWorld && (meWorld !== 'b' || peer.bld === inBuilding.id);
     if (!peer.g.visible) continue;
     const before = peer.pos.clone();
     // a passenger rides in the driver's car: sit them beside the driver
