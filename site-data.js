@@ -168,3 +168,31 @@ CLIENTS.filter(c => c.cover && !c.work).forEach(c => WORK.push({
   id: 'c-' + c.cover, name: c.name, ind: CLIENT_IND[c.cover] || L("Planet client","عميل Planet"), year: '', logo: c.logo,
   imgs: ['covers/' + c.cover + '.jpg'], svc: [], sum: null,
 }));
+
+/* real team photos from theplanetco.com/about */
+const TEAM_PHOTOS = ['ahmed-qadada','amira-qadada','aya-alashi','aya-arabi','bassant-ahmed','bassel-mutair','dana-qadada','dima-abdel-aal','hassan-fathi','ibrahem-mahmoud','ibrahim-nasr','jumana-shaheen','mohammed-anan','mohammed-maged','mohammed-qadada','mustafa-hamdy','noreen-nabil','shahinda-hamed','tareq-nasr','yara-ameen','yomna-fathi','youstina-kamel','youstina-nassef'];
+TEAM.forEach(m => { const slug = m.name.en.toLowerCase().replace(/\s+/g, '-'); if (TEAM_PHOTOS.includes(slug)) m.photo = `img/team/${slug}.jpg`; });
+
+/* every client's delivered work, as published on theplanetco.com/clients/<slug> (folder: image count) */
+const CW = { alashi:12, aljamalla:12, belalhanif:12, 'best-one':5, 'implant-gate':11, jagal:10, lorya:12, 'mo-adel':10, 'seha-practo':10, tadawa:12, uber:10, value:12, westeros:12 };
+function clientGallery(c){
+  if (CW[c.logo]) return Array.from({ length: CW[c.logo] }, (_, i) => `cw/${c.logo}/${String(i + 1).padStart(2, '0')}.jpg`);
+  const w = WORK.find(x => x.id === c.work); if (w) return w.imgs.slice();
+  return c.cover ? [`covers/${c.cover}.jpg`] : [];
+}
+
+/* client districts: each client gets a building in the neighbourhood of its industry */
+const DISTRICTS = {
+  food:   { kind: 'resto',  icon: '🍽️', color: 0xE76F51, name: L("Restaurants & Cafés","حي المطاعم والكافيهات"), clients: ['qidra','aljamalla','westeros','alshawa','bossco'] },
+  health: { kind: 'clinic', icon: '🩺', color: 0x3E8E7E, name: L("Clinics & Healthcare","حي العيادات والصحة"),     clients: ['gms','value','tadawa','implant-gate','seha-practo'] },
+  travel: { kind: 'kiosk',  icon: '✈️', color: 0x5FA0E6, name: L("Travel","حي السفر"),                           clients: ['terhal','belalhanif'] },
+  money:  { kind: 'glass',  icon: '🏙️', color: 0x2E6BA9, name: L("Real estate & Finance","حي العقارات والمال"),   clients: ['mavirealty','unitedinvestment'] },
+  shop:   { kind: 'shop',   icon: '🛍️', color: 0xF2C94C, name: L("Brands & Retail","حي البراندات"),             clients: ['uber','lorya','jagal','alashi','best-one'] },
+  pro:    { kind: 'office', icon: '⚖️', color: 0x8E6BC2, name: L("Services","حي الخدمات"),                       clients: ['wakeelak','alzaytouna','mo-adel'] },
+};
+Object.entries(DISTRICTS).forEach(([dk, D]) => D.clients.forEach(logo => {
+  const c = CLIENTS.find(x => x.logo === logo); if (!c) return;
+  POIS.push({ id: 'c_' + logo, kind: D.kind, district: dk, client: c, sign: c.name.en.toUpperCase(), name: c.name,
+    lines: [L(`Welcome to ${c.name.en} — one of the brands Planet works with, here in the ${D.name.en} district.`,
+              `أهلاً في ${c.name.ar} — واحدة من العلامات اللي Planet بتشتغل معاها، هنا في ${D.name.ar}.`)] });
+}));

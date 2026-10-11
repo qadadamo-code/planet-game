@@ -78,7 +78,7 @@ const EXHIBITS = {
     shell(X.clients, `<span class="roll" data-to="${CLIENTS.length}">0</span> <small>${t(X.of370)}</small>`, `
       <p class="ex-note">${t(X.tapLogo)}</p>
       <div class="wall">${xshuffle(CLIENTS).map((c, k) => { const open = c.work || (c.cover ? 'c-' + c.cover : '');
-        return `<button type="button" class="tile ${open ? 'has' : ''}" style="--d:${k * 40}ms" ${open ? `data-case="${open}"` : 'disabled'}>
+        return `<button type="button" class="ctile ${open ? 'has' : ''}" style="--d:${k * 40}ms" ${open ? `data-case="${open}"` : 'disabled'}>
           ${c.logo ? `<img src="img/logos/${c.logo}.png" alt="">` : `<span class="mono" style="--h:${(k * 53) % 360}">${xini(t(c.name))}</span>`}<span>${t(c.name)}</span></button>`; }).join('')}</div>`);
     const r = $('exbody').querySelector('.roll'); let n = 0;
     const tick = setInterval(() => { if (!r.isConnected) return clearInterval(tick); r.textContent = ++n; if (n % 3 === 0) Sfx.blip(); if (n >= +r.dataset.to) clearInterval(tick); }, 45);
@@ -96,7 +96,7 @@ const EXHIBITS = {
         <p class="ex-note">${t(X.tapCard)}</p>
         <div class="deck">${list.map((m, k) => `
           <button type="button" class="tcard ${m.lead ? 'lead' : ''}" style="--d:${k * 55}ms;--h:${(parseInt(m.id.slice(4)) * 47) % 360}">
-            <span class="face front"><span class="av">${xini(t(m.name))}</span><b>${t(m.name)}</b><small>${t(DEPTS[m.dept])}</small></span>
+            <span class="face front">${m.photo ? `<img class="av ph" src="${m.photo}" alt="" loading="lazy">` : `<span class="av">${xini(t(m.name))}</span>`}<b>${t(m.name)}</b><small>${t(DEPTS[m.dept])}</small></span>
             <span class="face back"><b>${t(m.name)}</b><span>${t(m.title)}</span><i>★ Planet</i></span>
           </button>`).join('')}</div>`);
       $('exbody').querySelectorAll('[data-dept]').forEach(b => b.onclick = () => { dept = b.dataset.dept; Sfx.click(); draw(); });
@@ -150,6 +150,7 @@ const EXHIBITS = {
 const PLACE_EXHIBIT = { gallery: ['work', 0], fly: ['work', 'fly29'], monument: ['clients'], careers: ['team'], cafe: ['team'],
   lab: ['products'], academy: ['quiz'], process: ['brief'], observatory: ['about'], lighthouse: ['about'], values: ['about'], hq: ['brief'] };
 function exhibitFor(p){
+  if (p.client) return () => openExhibit('client', p.client.logo || p.client.name.en);
   if (p.svc) return () => openExhibit('service', p.id);
   const e = PLACE_EXHIBIT[p.id]; return e ? () => openExhibit(e[0], e[1]) : null;
 }
@@ -306,5 +307,41 @@ $('wa').onclick = () => {
 };
 $('dn').onclick = () => { dnMode = { auto: isNight() ? 'day' : 'night', day: 'night', night: 'auto' }[dnMode]; store.set('pm-dn', dnMode); applyDayNight(); Sfx.click();
   mini(dnMode === 'auto' ? (lang === 'ar' ? '🕐 حسب ساعتك' : '🕐 Following your clock') : dnMode === 'night' ? (lang === 'ar' ? '🌙 ليل' : '🌙 Night') : (lang === 'ar' ? '☀️ نهار' : '☀️ Day')); };
+
+
+/* ---------- a client's place: their story and every piece we delivered for them ---------- */
+EXTRA.client = key => {
+  const c = CLIENTS.find(x => (x.logo || x.name.en) === key); if (!c) return;
+  const ar = lang === 'ar', w = WORK.find(x => x.id === c.work), imgs = clientGallery(c);
+  const dk = Object.keys(DISTRICTS).find(k => DISTRICTS[k].clients.includes(c.logo)), D = dk && DISTRICTS[dk];
+  shell(D ? L(`${D.icon} ${D.name.en}`, `${D.icon} ${D.name.ar}`) : X.clients, `${c.logo ? `<img class="hlogo" src="img/logos/${c.logo}.png" alt="">` : ''}${t(c.name)}`, `
+    ${w && w.sum ? `<p class="ex-lead">${t(w.sum)}</p>` : `<p class="ex-lead">${ar ? `شغل اتسلّم لـ${c.name.ar} — من أكتر من 370 علامة اشتغلنا معاها.` : `Selected creatives delivered for ${c.name.en} — one of the 370+ brands we work with.`}</p>`}
+    ${w && w.svc.length ? `<div class="chips">${w.svc.map(s2 => `<span>${xsvc(s2)}</span>`).join('')}${w.year ? `<span>${w.year}</span>` : ''}</div>` : ''}
+    ${w && w.quote ? `<blockquote>${t(w.quote)}</blockquote>` : ''}
+    <h4>${ar ? `أعمالنا لـ${c.name.ar}` : `Our work for ${c.name.en}`} <small class="cnt">${imgs.length}</small></h4>
+    <div class="cgal">${imgs.map((src, k) => `<button type="button" class="cg" data-i="${k}" style="--d:${k * 50}ms"><img src="img/${src}" alt="" loading="lazy"></button>`).join('')}</div>
+    <div class="sendrow"><button type="button" class="ex-cta" id="likethis">${ar ? '✨ عايز شغل زي ده؟ اعمل بريفك' : '✨ Want work like this? Build your brief'}</button></div>
+    <div class="lightbox" id="lb" hidden><button type="button" class="lbx">✕</button><button type="button" class="lba" data-l="-1">‹</button><img id="lbimg" alt=""><button type="button" class="lba" data-l="1">›</button><span id="lbn" dir="ltr"></span></div>`);
+  let li = 0; const lb = $('lb'), show = k => { li = (k + imgs.length) % imgs.length; $('lbimg').src = 'img/' + imgs[li]; $('lbn').textContent = `${li + 1} / ${imgs.length}`; lb.hidden = false; };
+  $('exbody').querySelectorAll('.cg').forEach(b => b.onclick = () => { Sfx.click(); show(+b.dataset.i); });
+  lb.querySelectorAll('[data-l]').forEach(b => b.onclick = e => { e.stopPropagation(); show(li + (+b.dataset.l) * (ar ? -1 : 1)); Sfx.click(); });
+  lb.querySelector('.lbx').onclick = () => lb.hidden = true;
+  xKeys = e => { if (lb.hidden) return; if (e.code === 'ArrowLeft') show(li + (ar ? 1 : -1)); if (e.code === 'ArrowRight') show(li + (ar ? -1 : 1)); };
+  $('likethis').onclick = () => { if (dk){ const ind = { food:'food', health:'health', travel:'travel', money:'estate', shop:'retail', pro:'legal' }[dk]; if (!brief.ind) brief.ind = ind; } openExhibit('brief'); };
+};
+
+/* ---------- one crew member, from the Moon ---------- */
+EXTRA.member = id => {
+  const m = TEAM.find(x => x.id === id); if (!m) return; const ar = lang === 'ar';
+  const mates = TEAM.filter(x => x.dept === m.dept && x.id !== m.id);
+  shell(L("THE CREW", "طاقم Planet"), t(m.name), `
+    <div class="member">
+      ${m.photo ? `<img class="mph" src="${m.photo}" alt="">` : `<span class="av big" style="--h:${(parseInt(m.id.slice(4)) * 47) % 360}">${xini(t(m.name))}</span>`}
+      <div><p class="mrole">${t(m.title)}</p><p class="ex-note">${t(DEPTS[m.dept])}${m.lead ? (ar ? ' · الإدارة' : ' · Leadership') : ''}</p>
+        ${mates.length ? `<h4>${ar ? 'في نفس الفريق' : 'Same team'}</h4><div class="mates">${mates.map(x => `<button type="button" data-m="${x.id}">${x.photo ? `<img src="${x.photo}" alt="">` : ''}<span>${t(x.name)}</span></button>`).join('')}</div>` : ''}
+      </div>
+    </div>`);
+  $('exbody').querySelectorAll('[data-m]').forEach(b => b.onclick = () => openExhibit('member', b.dataset.m));
+};
 
 Object.assign(EXHIBITS, EXTRA);
