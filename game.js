@@ -250,19 +250,31 @@ const glowTex = (() => { const c = document.createElement('canvas'); c.width = c
 
 /* ---------- props ---------- */
 const SKIN = [0xF1C9A5,0xD9A27A,0xB57A55,0xF3D2B5], SHIRT = [0x2E6BA9,0xF2C94C,0xE76F51,0x3E8E7E,0x8E6BC2,0xF4F7FC,0x12153A,0xE9A0B8], HAIR = [0x2B1B12,0x12153A,0x5A3A22,0x0E0E10,0x8A5A2B];
-function person(k){
+function person(k, opt = {}){
   const p = new THREE.Group(), body = new THREE.Group(); p.add(body); const pick = (a,o) => a[(k*7+o) % a.length];
   const legL = new THREE.Group(), legR = new THREE.Group();
   [legL,legR].forEach((l,i) => { l.position.set(i?0.11:-0.11, 0.55, 0); const m = mesh(new THREE.CylinderGeometry(0.09,0.09,0.55,8), 0x23284D, 0); m.position.y = -0.27; l.add(m);
     const sh = mesh(new THREE.BoxGeometry(0.16,0.1,0.24), 0x2B1B12, 0); sh.position.set(0,-0.55,0.04); l.add(sh); body.add(l); });
-  const tor = mesh(new THREE.CylinderGeometry(0.24,0.27,0.6,12), pick(SHIRT,0)); tor.position.y = 0.85; body.add(tor);
+  const tor = mesh(new THREE.CylinderGeometry(0.24,0.27,0.6,12), opt.shirt ?? pick(SHIRT,0)); tor.position.y = 0.85; body.add(tor);
   const hd = mesh(new THREE.SphereGeometry(0.26,16,12), pick(SKIN,1)); hd.position.y = 1.38; body.add(hd);
-  const hr = mesh(new THREE.SphereGeometry(0.28,16,10,0,Math.PI*2,0,Math.PI*0.55), pick(HAIR,2), 0); hr.position.y = 1.42; hr.rotation.x = -0.25; body.add(hr);
-  if (k % 4 === 1){ const cap = mesh(new THREE.CylinderGeometry(0.27,0.28,0.12,14), pick(SHIRT,3)); cap.position.y = 1.56; body.add(cap); const brim = mesh(new THREE.BoxGeometry(0.3,0.03,0.22), pick(SHIRT,3), 0); brim.position.set(0,1.52,0.25); body.add(brim); }
-  if (k % 5 === 2){ [-0.09,0.09].forEach(x => { const gl = mesh(new THREE.TorusGeometry(0.06,0.015,6,12), 0x12153A, 0); gl.position.set(x,1.41,0.25); body.add(gl); }); }
-  [-0.09,0.09].forEach(x => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.035,8,6), basic(0x0E0E10)); e.position.set(x,1.4,0.24); body.add(e); });
+  // looks: 0 short hair · 1 cap · 2 hijab · 3 long hair · 4 short + glasses · 5 long hair + bun
+  const look = opt.look ?? (k % 6), hairC = pick(HAIR,2);
+  if (look === 2){ const hj = mesh(new THREE.SphereGeometry(0.31,16,12,Math.PI*0.62,Math.PI*1.76,0,Math.PI*0.78), pick([0x2E6BA9,0x8E6BC2,0xE9A0B8,0x3E8E7E,0x12153A,0xF2C94C],5), 0); hj.position.y = 1.38; body.add(hj);
+    const dr = mesh(new THREE.CylinderGeometry(0.2,0.3,0.28,14), hj.material.color.getHex(), 0); dr.position.y = 1.12; body.add(dr); }
+  else { const hr = mesh(new THREE.SphereGeometry(0.28,16,10,0,Math.PI*2,0,Math.PI*0.55), hairC, 0); hr.position.y = 1.42; hr.rotation.x = -0.25; body.add(hr);
+    if (look === 3 || look === 5){ const lh = mesh(new THREE.BoxGeometry(0.46,0.5,0.16), hairC, 0); lh.position.set(0,1.22,-0.16); body.add(lh); }
+    if (look === 5){ const bun = mesh(new THREE.SphereGeometry(0.11,10,8), hairC, 0); bun.position.set(0,1.66,-0.12); body.add(bun); } }
+  if (look === 1){ const cap = mesh(new THREE.CylinderGeometry(0.27,0.28,0.12,14), pick(SHIRT,3)); cap.position.y = 1.56; body.add(cap); const brim = mesh(new THREE.BoxGeometry(0.3,0.03,0.22), pick(SHIRT,3), 0); brim.position.set(0,1.52,0.25); body.add(brim); }
+  if (opt.face){ // a real photo as the face, for the Planet crew
+    const f = new THREE.Mesh(new THREE.CircleGeometry(0.235, 24), new THREE.MeshBasicMaterial({ map: opt.face })); f.position.set(0,1.38,0.262); body.add(f); }
+  else {
+    if (look === 4){ [-0.09,0.09].forEach(x => { const gl = mesh(new THREE.TorusGeometry(0.06,0.015,6,12), 0x12153A, 0); gl.position.set(x,1.41,0.25); body.add(gl); }); }
+    [-0.09,0.09].forEach(x => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.035,8,6), basic(0x0E0E10)); e.position.set(x,1.4,0.24); body.add(e); });
+    const sm = new THREE.Mesh(new THREE.TorusGeometry(0.06,0.012,6,12,Math.PI), basic(0x6B2A20)); sm.position.set(0,1.31,0.245); sm.rotation.z = Math.PI; body.add(sm); }
+  if (opt.logo){ // the company this person represents, printed on the shirt
+    const patch = new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.3), new THREE.MeshBasicMaterial({ map: opt.logo })); patch.position.set(0,0.9,0.262); body.add(patch); }
   const armL = new THREE.Group(), armR = new THREE.Group();
-  [armL,armR].forEach((a,i) => { a.position.set(i?0.31:-0.31, 1.08, 0); const m = mesh(new THREE.CylinderGeometry(0.07,0.07,0.5,8), pick(SHIRT,0), 0); m.position.y = -0.25; a.add(m);
+  [armL,armR].forEach((a,i) => { a.position.set(i?0.31:-0.31, 1.08, 0); const m = mesh(new THREE.CylinderGeometry(0.07,0.07,0.5,8), opt.shirt ?? pick(SHIRT,0), 0); m.position.y = -0.25; a.add(m);
     const h = mesh(new THREE.SphereGeometry(0.07,8,6), pick(SKIN,1), 0); h.position.y = -0.52; a.add(h); body.add(a); });
   p.userData = { dyn: true, body, armL, armR, legL, legR, k };
   return p;
@@ -474,7 +486,7 @@ function buildPois(){
       const sz = new THREE.Box3().setFromObject(hqModel).getSize(V()); r = Math.max(sz.x, sz.z)/2 + 0.2; }
     // extras in front of the door
     g.updateMatrixWorld(true);
-    const npc = p.client && i % 2 ? null : propAt(g, person(i + 3), -1.5, r + 0.9, 0.2); if (npc){ planet.add(npc); npcs.push(npc); }
+    const npc = propAt(g, person(i + 3, { logo: logoTex(p.client || PLANET_C) }), -1.4, r + 1.1, 0); if (npc){ planet.add(npc); npcs.push(npc); }
     // a real signboard standing in front of the building (no more floating labels); clients get their logo on it
     { const sb = propAt(g, signBoard(p), r * 0.95 + 0.6, r + 1.2, -0.45); bake(sb); planet.children.slice(-2).forEach(o => cullList.push(o)); addObstacle(sb.position.clone().normalize(), 0.5); }
     if (p.svc){ const mb = propAt(g, mailbox(), 1.4, r + 0.6); bake(mb); addObstacle(mb.position.clone().normalize(), 0.3); }
@@ -507,6 +519,7 @@ function buildPois(){
 
 /* a client's logo on a little totem in front of its building */
 const logoTexCache = {};
+const PLANET_C = { logo: 'planet', src: 'img/mark.png', name: L('Planet', 'Planet') };
 function logoTex(c){
   if (logoTexCache[c.logo]) return logoTexCache[c.logo];
   const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d'), tx = new THREE.CanvasTexture(cv);
@@ -515,7 +528,7 @@ function logoTex(c){
     else { x.fillStyle = '#12153A'; x.font = '900 120px IBM Plex Sans Arabic, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(c.name.en.slice(0,1), 128, 132); }
     tx.needsUpdate = true; };
   paint(null);
-  if (c.logo){ const im = new Image(); im.onload = () => paint(im); im.src = `img/logos/${c.logo}.png`; }
+  if (c.logo){ const im = new Image(); im.onload = () => paint(im); im.src = c.src || `img/logos/${c.logo}.png`; }
   return logoTexCache[c.logo] = tx;
 }
 function signBoard(p){
@@ -702,6 +715,7 @@ function buildStars(){
 /* clouds, birds, planes, satellite */
 const clouds = new THREE.Group(); scene.add(clouds);
 const birds = [];
+const extraPlanes = [];
 let plane = null, planeOrbit = null, sat = null, moon = null, moonOrb = null;
 function buildSkyLife(){
   for (let i=0;i<14;i++){ const c = new THREE.Group(), n = 3 + (rnd()*3|0);
@@ -721,6 +735,14 @@ function buildSkyLife(){
     moon = new THREE.Mesh(new THREE.SphereGeometry(14, 40, 24), new THREE.MeshBasicMaterial({ map: tx, fog: false }));
     moonOrb = new THREE.Group(); moonOrb.rotation.set(0.5, 0, 0.25); moon.position.set(R + 170, 30, 0); moon.rotation.y = -Math.PI/2; moonOrb.add(moon); scene.add(moonOrb);
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0x5FA0E6, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.5, fog: false })); halo.scale.setScalar(50); moon.add(halo); }
+  // more traffic in the sky: one plane tows a banner for our clients
+  [[0.2, 1.2, -0.6, R + 19, 0.09, true], [1.6, 0.3, 0.9, R + 23, -0.07, false]].forEach(([a, b, c2, rad, sp, banner]) => {
+    const orb = new THREE.Group(); orb.rotation.set(a, b, c2); scene.add(orb); const pl = makePlane(); pl.position.set(0, 0, rad); pl.rotation.set(0, Math.PI/2, 0); pl.scale.setScalar(1.5); orb.add(pl);
+    if (banner){ const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 160; const x = cv.getContext('2d'); x.fillStyle = '#F2C94C'; x.fillRect(0,0,1024,160); x.fillStyle = '#12153A'; x.font = '800 74px IBM Plex Sans Arabic, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
+      x.fillText('Planet ✦ أكتر من 370 علامة', 512, 84, 980);
+      const flag = new THREE.Mesh(new THREE.PlaneGeometry(7, 1.1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), side: THREE.DoubleSide })); flag.position.set(0, 0, -6.4); flag.rotation.y = Math.PI/2; pl.add(flag);
+      const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,2.6,4), basic(0x12153A)); rope.rotation.x = Math.PI/2; rope.position.z = -2.4; pl.add(rope); }
+    extraPlanes.push({ orb, sp }); });
   sat = new THREE.Group(); sat.add(mesh(new THREE.BoxGeometry(1.2,1.2,1.6), 0xF4F7FC)); const panel = mesh(new THREE.BoxGeometry(5,0.1,1.2), 0x2E6BA9); sat.add(panel);
   const dish = mesh(new THREE.SphereGeometry(0.6,16,8,0,Math.PI*2,0,Math.PI/2), 0xF2C94C); dish.position.y = 0.7; sat.add(dish);
   const sOrb = new THREE.Group(); sOrb.rotation.set(0.3, 0, -0.5); sat.position.set(R + 24, 0, 0); sOrb.add(sat); scene.add(sOrb); sat.userData.orb = sOrb;
@@ -740,9 +762,16 @@ function makeVan(){
   [[-0.6,0.9],[0.6,0.9],[-0.6,-0.8],[0.6,-0.8]].forEach(([x,z]) => { const w = mesh(new THREE.CylinderGeometry(0.28,0.28,0.2,12), 0x12153A, 0); w.rotation.z = Math.PI/2; w.position.set(x,0.28,z); g.add(w); });
   return g;
 }
+function residentLine(c, i){
+  const n = c.name, opts = [
+    L(`Hi! I'm with ${n.en}. Planet does our marketing — come see what they made for us!`, `أهلاً! أنا من ${n.ar}. Planet هما اللي بيعملولنا التسويق — تعالى شوف عملولنا إيه!`),
+    L(`${n.en} here 👋 We're one of 370+ brands on this planet.`, `${n.ar} هنا 👋 إحنا واحدة من أكتر من 370 علامة على الكوكب ده.`),
+    L(`Lovely day on Planet! I'm from ${n.en} — want to see our posts and campaigns?`, `يوم حلو على Planet! أنا من ${n.ar} — تحب تشوف بوستاتنا وحملاتنا؟`),
+  ]; return opts[i % opts.length];
+}
 function spawnTraffic(){
   for (let i=0;i<3;i++){ const v = makeVan(); planet.add(v); cullList.push(v); vehicles.push({ g: v, e: (i*7) % EDGES.length, s: 3, dir: i%2 ? 1 : -1, speed: 0, max: 6 + rnd()*2, honk: 0 }); }
-  for (let i=0;i<6;i++){ const p = person(20 + i); planet.add(p); cullList.push(p); walkers.push({ g: p, e: (i*3+1) % EDGES.length, s: 4 + rnd()*6, dir: i%2 ? 1 : -1, walkT: rnd()*6, line: CHATTER[i % CHATTER.length], pause: 0 }); }
+  const folks = CLIENTS.filter(c => c.logo); for (let i=0;i<18;i++){ const c = folks[i % folks.length]; const p = person(20 + i, { logo: logoTex(c) }); planet.add(p); cullList.push(p); walkers.push({ g: p, c, e: (i*5+1) % EDGES.length, s: 2 + rnd()*14, dir: i%2 ? 1 : -1, walkT: rnd()*6, line: residentLine(c, i), pause: 0 }); }
 }
 function advanceOnGraph(o, step){
   const [ia,ib] = EDGES[o.e], L = poiDirs[ia].angleTo(poiDirs[ib])*R;
@@ -830,7 +859,7 @@ async function loadModels(progress){
     const patch = new THREE.Mesh(new THREE.PlaneGeometry(0.34,0.22), new THREE.MeshBasicMaterial({ color: 0xffffff })); patch.position.set(0,0.04,-0.105); patch.rotation.y = Math.PI; pack.add(patch);
     const mk = new THREE.Mesh(new THREE.PlaneGeometry(0.31,0.2), new THREE.MeshBasicMaterial({ map: markTex, transparent: true })); mk.position.set(0,0.04,-0.108); mk.rotation.y = Math.PI; pack.add(mk);
     pack.position.set(0, charLoaded ? BACKPACK_Y : 0.95, charLoaded ? BACKPACK_Z : -0.32); rig.add(pack); }
-  if (hq){ const root = hq.scene; const holder = new THREE.Group(); holder.add(root); const s = fitHeight(root, 5.6); toonify(root, 0.03/s); root.position.y -= 0.38; root.rotation.y = HQ_YAW; hqModel = holder; hqModel.userData.dyn = true; }
+  if (hq){ const root = hq.scene; const holder = new THREE.Group(); holder.add(root); const s = fitHeight(root, 8.2); toonify(root, 0.03/s); root.position.y -= 0.5; root.rotation.y = HQ_YAW; hqModel = holder; hqModel.userData.dyn = true; }
   if (van){ const root = van.scene; const holder = new THREE.Group(); holder.add(root); const s = fitHeight(root, 1.55); toonify(root, 0.025/s); root.rotation.y = VAN_YAW; vanModel = holder; }
 }
 const CHAR_YAW = 0, HQ_YAW = 0, VAN_YAW = Math.PI/2, BACKPACK_Y = 1.12, BACKPACK_Z = -0.2;
@@ -962,9 +991,10 @@ function act(){
 function interact(tk){
   if (tk.kind === 'stone'){ const s = STONES[tk.ref][lang]; return talk(L(STONES[tk.ref].en[0], STONES[tk.ref].ar[0]), [L(STONES[tk.ref].en[1], STONES[tk.ref].ar[1])], true); }
   if (tk.kind === 'board') return openExhibit('client', tk.ref.logo || tk.ref.name.en);
+  if (tk.kind === 'emp') return talkToCrew(tk.ref);
   if (tk.kind === 'car') return mountCar();
   if (tk.kind === 'rocket') return talk(L('Planet Rocket','صاروخ Planet'), [L("Fuelled and ready. Three worlds orbit Planet: the Moon where our crew lives, the Clients' Ring, and the Academy planet.", "الوقود مليان. فيه تلات عوالم حوالين Planet: القمر اللي ساكن فيه طاقمنا، وحلقة العملاء، وكوكب الأكاديمية.")], true, () => startLaunch());
-  if (tk.kind === 'walker'){ tk.ref.pause = 4; return talk(L('Townsperson', 'واحد من سكان الكوكب'), [tk.ref.line], true); }
+  if (tk.kind === 'walker'){ tk.ref.pause = 6; const c = tk.ref.c; return talk(c ? c.name : L('Townsperson', 'واحد من سكان الكوكب'), [tk.ref.line], true, c ? () => openExhibit('client', c.logo) : null); }
   const p = tk.ref;
   if (p.svc && !p.done){
     talk(UI.me, [L(`Delivery for the ${p.name.en} studio! One brief, as promised.`, `توصيلة لاستوديو ${p.name.ar}! بريف واحد زي ما اتفقنا.`)], false, () =>
@@ -978,7 +1008,8 @@ function interact(tk){
   } else if (p.id === 'hq' && save.d.length === SVCS.length){
     talk(p.name, [L("Every brief delivered. That's how Planet works: one team, one plan, one person you can call.", "كل البريفات اتسلّمت. هي دي طريقة Planet: فريق واحد، خطة واحدة، وشخص واحد تكلّمه."),
                   L("Marketing that gets you noticed. And turns interest into customers.", "تسويق يخلّي الناس تشوفك. ويحوّل الاهتمام لعملاء.")], true, startFinale);
-  } else talk(p.name, p.lines, true, exhibitFor(p));
+  } else if (p.id === 'hq') talk(p.name, [p.lines[0], L("Come in — the whole team is inside. Every room will say hello.", "اتفضّل جوّه — الفريق كله موجود. كل أوضة هترحّب بيك.")], true, () => enterOffice());
+  else talk(p.name, p.lines, true, exhibitFor(p));
 }
 
 /* ---------- particles: delivery bursts + fireworks ---------- */
@@ -1110,7 +1141,7 @@ function frame(now){
   const dt = Math.min(0.05, (now - last)/1000); last = now; const ts = now/1000;
   if (oceanMat && oceanMat.userData.s) oceanMat.userData.s.uniforms.uT.value = ts;
   clouds.rotation.y += dt*0.008; clouds.rotation.x += dt*0.002;
-  if (planeOrbit) planeOrbit.rotation.y += dt*0.13;
+  if (planeOrbit) planeOrbit.rotation.y += dt*0.13; for (const e of extraPlanes) e.orb.rotation.y += dt*e.sp;
   if (sat) sat.userData.orb.rotation.y -= dt*0.05;
   for (const b of birds){ b.piv.rotateY(dt*b.speed); b.flock.children.forEach(x => { const f = Math.sin(ts*8 + x.userData.ph)*0.5; x.userData.wl.rotation.z = f; x.userData.wr.rotation.z = -f; }); }
   for (const s of spinners) s.rotation.y += dt*0.8;
@@ -1134,7 +1165,7 @@ function frame(now){
     advanceOnGraph(w, 1.3*dt); w.walkT += dt*6; poseOnGraph(w, -1.9, 0); animatePerson(w.g, w.walkT, false, ts);
   }
   // standing NPCs wave when you come close
-  for (const n of npcs){ const d = n.getWorldPosition(tmp).distanceTo(player.position); animatePerson(n, 0, state !== 'title' && d < 5, ts); }
+  for (const n of npcs){ const d = n.getWorldPosition(tmp).distanceTo(player.position); animatePerson(n, 0, state !== 'title' && d < 10, ts); }
   if ((++cullTick & 3) === 0){ for (const o of cullList){ { const dc = o.position.distanceTo(camera.position); o.visible = !o.userData.hidden && dc < (o.isSprite ? 40 : 46) && dc > 1.9; } } }
   // signs fade with distance
   for (const s of signs){ const d = s.getWorldPosition(tmp).distanceTo(camera.position); s.material.opacity = clamp(1 - (d - 16)/7, 0, 1); s.visible = s.material.opacity > 0.01; }
@@ -1143,6 +1174,7 @@ function frame(now){
     scene.fog.near += (fn - scene.fog.near)*kf; scene.fog.far += (ff - scene.fog.far)*kf; }
   if (moonOrb) moonOrb.rotation.y += dt*0.012;
   if (typeof spaceFrame === 'function' && spaceFrame(dt, ts)){ /* space.js drives the camera */ }
+  else if (typeof officeFrame === 'function' && officeFrame(dt, now)){ /* office.js: inside HQ */ }
   else if (state === 'title' || state === 'loading'){
     const a = ts*0.08; camera.position.set(Math.sin(a)*R*3.2, R*0.95, Math.cos(a)*R*3.2); camera.up.set(0,1,0); camera.lookAt(0,0,0);
   } else if (state === 'finale'){
@@ -1160,8 +1192,8 @@ function frame(now){
     if (state === 'play'){
       near = findNear();
       $('prompt').hidden = !near;
-      if (near){ const nm = near.kind === 'poi' ? t(near.ref.name) : near.kind === 'stone' ? t(L(STONES[near.ref].en[0], STONES[near.ref].ar[0])) : near.kind === 'board' ? t(near.ref.name) : near.kind === 'car' ? (lang === 'ar' ? 'عربية Planet' : 'the Planet car') : near.kind === 'rocket' ? (lang === 'ar' ? 'صاروخ Planet' : 'the Planet rocket') : t(L('Townsperson','واحد من السكان'));
-        $('promptText').textContent = `${near.kind === 'stone' ? t(UI.visit) : near.kind === 'board' ? (lang === 'ar' ? 'شوف شغل' : 'See work for') : near.kind === 'car' || near.kind === 'rocket' ? (lang === 'ar' ? 'اركب' : 'Ride') : t(UI.talk)} ${nm}`; }
+      if (near){ const nm = near.kind === 'poi' ? t(near.ref.name) : near.kind === 'stone' ? t(L(STONES[near.ref].en[0], STONES[near.ref].ar[0])) : near.kind === 'board' ? t(near.ref.name) : near.kind === 'car' ? (lang === 'ar' ? 'عربية Planet' : 'the Planet car') : near.kind === 'rocket' ? (lang === 'ar' ? 'صاروخ Planet' : 'the Planet rocket') : (near.kind === 'walker' && near.ref.c ? (lang === 'ar' ? 'واحد من ' : 'someone from ') + t(near.ref.c.name) : t(L('Townsperson','واحد من السكان')));
+        $('promptText').textContent = `${near.kind === 'stone' ? t(UI.visit) : near.kind === 'board' ? (lang === 'ar' ? 'شوف شغل' : 'See work for') : near.kind === 'car' || near.kind === 'rocket' ? (lang === 'ar' ? 'اركب' : 'Ride') : near.kind === 'poi' && near.ref.id === 'hq' ? (lang === 'ar' ? 'ادخل' : 'Enter') : t(UI.talk)} ${nm}`; }
       // discovery
       const [pd, pi] = poiDist(pDir);
       if (pd < 11 && !save.p.includes(pi)){ save.p.push(pi); persist(); updateHud(); Sfx.discover(); mini(`📍 ${t(UI.found)}: ${t(pois[pi].name)}`); }
