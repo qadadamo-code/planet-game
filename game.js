@@ -655,7 +655,7 @@ addEventListener('keydown', e => {
   if (['KeyE','Enter','NumpadEnter'].includes(e.code)){ if (!(e.code !== 'KeyE' && e.target.closest && e.target.closest('a,button'))){ act(); if (state !== 'title') e.preventDefault(); } }
   if (e.code === 'Space'){ if (state === 'talk') { advance(); e.preventDefault(); } else if (state === 'play'){ jumpReq = true; e.preventDefault(); } }
   if (e.code === 'KeyJ' && (state === 'play' || state === 'journal')) toggleJournal();
-  if (e.code === 'Escape'){ if (state === 'journal') toggleJournal(); }
+  if (e.code === 'Escape'){ if (state === 'journal') toggleJournal(); else if (state === 'play') exitExplore(); }
   if (state === 'play' && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
@@ -689,7 +689,7 @@ function applyLang(){
   $('lang').textContent = lang === 'ar' ? 'EN' : 'عربي';
   document.querySelectorAll('[data-t]').forEach(el => el.innerHTML = t(UI[el.dataset.t]));
   $('keys').innerHTML = t(UI.keys);
-  updateHud(); if (dlg.active) renderLine(true); if (state === 'journal') renderJournal();
+  updateHud(); if (dlg.active) renderLine(true); if (state === 'journal') renderJournal(); if (typeof renderSite === 'function') renderSite();
 }
 $('lang').onclick = () => { Sfx.click(); lang = lang === 'en' ? 'ar' : 'en'; store.set('pm-lang', lang); applyLang(); };
 function syncSnd(){ $('sndwave').hidden = !Sfx.on; $('sndoff').hidden = Sfx.on; }
@@ -932,8 +932,10 @@ function frame(now){
 
   { const far = state === 'title' || state === 'loading' || (state === 'intro' && introT < 1.4), fn = far ? 90 : state === 'finale' ? 40 : 30, ff = far ? 220 : state === 'finale' ? 140 : 88, kf = 1 - Math.exp(-1.5*dt);
     scene.fog.near += (fn - scene.fog.near)*kf; scene.fog.far += (ff - scene.fog.far)*kf; }
+  if (state !== 'title' && state !== 'loading' && camera.view && camera.view.enabled) camera.clearViewOffset();
   if (state === 'title' || state === 'loading'){
     const a = ts*0.08; camera.position.set(Math.sin(a)*95, 28, Math.cos(a)*95); camera.up.set(0,1,0); camera.lookAt(0,0,0);
+    const sw = innerWidth, sh = innerHeight, sc = $('title').scrollTop || 0; if (sw > sh) camera.setViewOffset(sw, sh, (lang === 'ar' ? 0.2 : -0.2)*sw, -Math.min(sc, sh)*0.5, sw, sh); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   } else if (state === 'finale'){
     finaleT += dt; const hq = pois[0];
     const center = hq.dir.clone().multiplyScalar(R), side = V().crossVectors(hq.dir, Y).normalize(); if (side.lengthSq() < 0.1) side.set(1,0,0);
@@ -975,10 +977,16 @@ function resize(){ const w = innerWidth, h = innerHeight; renderer.setSize(w, h,
 addEventListener('resize', resize);
 
 /* ---------- start ---------- */
-$('begin').onclick = () => {
+function startExplore(){
   if (state !== 'title') return;
-  Sfx.init(); Sfx.open(); camera.position.copy(pDir).multiplyScalar(80).addScaledVector(camFwd, -30); $('title').hidden = true; $('hud').hidden = false; $('jbtn').hidden = false; state = 'intro'; introT = 0; canvas.focus();
-};
+  Sfx.init(); Sfx.open(); camera.position.copy(pDir).multiplyScalar(80).addScaledVector(camFwd, -30); $('title').hidden = true; $('hud').hidden = false; $('jbtn').hidden = false; $('homebtn').hidden = false; state = 'intro'; introT = 0; canvas.focus();
+}
+function exitExplore(){
+  if (state === 'loading' || state === 'title') return;
+  releaseAll(); dlg.active = false; ['dialog','journal','final','hud','jbtn','prompt','homebtn'].forEach(id => $(id).hidden = true);
+  Sfx.duck(1); Sfx.close(); state = 'title'; $('title').hidden = false; $('title').focus();
+}
+$('homebtn').onclick = exitExplore;
 function introDone(){
   setTimeout(() => { const k = $('keys'); if (k) k.style.transition = 'opacity 1s', k.style.opacity = 0; }, 20000);
   const first = !save.d.length && !save.p.length;
