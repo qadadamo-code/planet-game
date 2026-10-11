@@ -200,4 +200,13 @@ Object.entries(DISTRICTS).forEach(([dk, D]) => D.clients.forEach(logo => {
 /* clients' official accounts — only links confirmed to belong to that exact brand. Add the rest as they're confirmed. */
 const CLIENT_LINKS = {
   'seha-practo': { instagram: 'https://www.instagram.com/seha.practo/', facebook: 'https://www.facebook.com/sehapracto/', website: 'https://www.sehapracto.com/' },
+  qidra: { facebook: 'https://www.facebook.com/qidra.res/' },
+  alshawa: { instagram: 'https://www.instagram.com/alshawwa_restaurant/' },
+  bossco: { instagram: 'https://www.instagram.com/boss.co.sa/' },
+  terhal: { instagram: 'https://www.instagram.com/terhal_egypt/', facebook: 'https://www.facebook.com/Terhal/' },
+  belalhanif: { facebook: 'https://www.facebook.com/honaifcompany/' },
+  mavirealty: { facebook: 'https://www.facebook.com/MaviRealty/', website: 'https://mavirealty.com' },
+  uber: { facebook: 'https://www.facebook.com/uberenergydrinkofficial/' },
+  wakeelak: { facebook: 'https://www.facebook.com/wakelakeg/' },
+  fly29: { facebook: 'https://www.facebook.com/fly29.net' },
 };

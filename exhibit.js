@@ -18,6 +18,10 @@ const X = {
 };
 
 const xsvc = id => t(POIS.find(p => p.id === id).name);
+function linksHTML(key){
+  const ar = lang === 'ar', lk = CLIENT_LINKS[key] || {}, ic = { website: ['🌐', ar ? 'الموقع' : 'Website'], instagram: ['📸', 'Instagram'], facebook: ['👍', 'Facebook'], tiktok: ['🎵', 'TikTok'], linkedin: ['💼', 'LinkedIn'], whatsapp: ['💬', 'WhatsApp'] };
+  const ks = Object.keys(ic).filter(k => lk[k]); return ks.length ? `<div class="clinks">${ks.map(k => `<a href="${lk[k]}" target="_blank" rel="noopener">${ic[k][0]} ${ic[k][1]}</a>`).join('')}</div>` : '';
+}
 const xshuffle = a => { const b = [...a]; for (let i = b.length - 1; i > 0; i--){ const j = Math.random()*(i + 1)|0; [b[i], b[j]] = [b[j], b[i]]; } return b; };
 const xini = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join('');
 const EXTRA = {};
@@ -60,6 +64,7 @@ const EXHIBITS = {
             ${w.sum ? `<p>${t(w.sum)}</p>` : `<p class="soon">${t(X.more)}</p>`}
             <div class="chips">${w.svc.map(s => `<span>${xsvc(s)}</span>`).join('')}</div>
             ${w.quote ? `<blockquote>${t(w.quote)}</blockquote>` : ''}
+            ${linksHTML(w.logo)}
           </div>
         </div>`, `
         <div class="ex-nav"><button type="button" class="ex-arrow" data-d="-1" aria-label="${t(X.prev)}">‹</button>
@@ -328,8 +333,7 @@ EXTRA.client = key => {
     ${w && w.sum ? `<p class="ex-lead">${t(w.sum)}</p>` : `<p class="ex-lead">${ar ? `شغل اتسلّم لـ${c.name.ar} — من أكتر من 370 علامة اشتغلنا معاها.` : `Selected creatives delivered for ${c.name.en} — one of the 370+ brands we work with.`}</p>`}
     ${w && w.svc.length ? `<div class="chips">${w.svc.map(s2 => `<span>${xsvc(s2)}</span>`).join('')}${w.year ? `<span>${w.year}</span>` : ''}</div>` : ''}
     ${w && w.quote ? `<blockquote>${t(w.quote)}</blockquote>` : ''}
-    ${(() => { const lk = CLIENT_LINKS[c.logo] || {}, ic = { website: ['🌐', ar ? 'الموقع' : 'Website'], instagram: ['📸', 'Instagram'], facebook: ['👍', 'Facebook'], tiktok: ['🎵', 'TikTok'], linkedin: ['💼', 'LinkedIn'], whatsapp: ['💬', 'WhatsApp'] };
-      const ks = Object.keys(ic).filter(k => lk[k]); return ks.length ? `<div class="clinks">${ks.map(k => `<a href="${lk[k]}" target="_blank" rel="noopener">${ic[k][0]} ${ic[k][1]}</a>`).join('')}</div>` : ''; })()}
+    ${linksHTML(c.logo)}
     <h4>${ar ? `أعمالنا لـ${c.name.ar}` : `Our work for ${c.name.en}`} <small class="cnt">${imgs.length}</small></h4>
     <div class="cgal">${imgs.map((src, k) => `<button type="button" class="cg" data-i="${k}" style="--d:${k * 50}ms"><img src="img/${src}" alt="" loading="lazy"></button>`).join('')}</div>
     <div class="sendrow"><button type="button" class="ex-cta" id="likethis">${ar ? '✨ عايز شغل زي ده؟ اعمل بريفك' : '✨ Want work like this? Build your brief'}</button></div>
