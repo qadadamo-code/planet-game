@@ -16,12 +16,28 @@ const VISITOR_COLORS = [0xE76F51, 0x3E8E7E, 0x8E6BC2, 0xF2C94C, 0xE9A0B8, 0x5FA0
 const netId = (() => { try { const k = 'pm-net-id', v = localStorage.getItem(k); if (v) return v;
   const n = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36)).replace(/-/g, '').slice(0, 12); localStorage.setItem(k, n); return n; } catch (e) { return Math.random().toString(36).slice(2, 14); } })();
 const netNum = parseInt(netId.slice(0, 6), 36) % 900 + 100;
-const netColor = VISITOR_COLORS[parseInt(netId.slice(6, 10), 36) % VISITOR_COLORS.length];
+/* the visitor's own name and colour (chosen once, kept on this device) */
+const PROFILE_COLORS = [0xE76F51, 0x3E8E7E, 0x8E6BC2, 0xF2C94C, 0xE9A0B8, 0x5FA0E6, 0xD94C93, 0x2EA87A, 0x12153A, 0xF4F7FC];
+const profile = (() => { try { return JSON.parse(localStorage.getItem('pm-profile') || '{}') || {}; } catch (e) { return {}; } })();
+let netColor = PROFILE_COLORS.includes(profile.color) ? profile.color : VISITOR_COLORS[parseInt(netId.slice(6, 10), 36) % VISITOR_COLORS.length];
 const peers = new Map();
 let netChan = null, netLive = false, netLastSend = 0, netLastKey = '';
 
 function visitorName(num, nick){ return nick ? L(nick, nick) : L(`Visitor ${num}`, `زائر ${num}`); }
-function myNick(){ return (typeof brief !== 'undefined' && brief.name) ? String(brief.name).slice(0, 24) : ''; }
+function myNick(){ return profile.nick ? String(profile.nick).slice(0, 20) : (typeof brief !== 'undefined' && brief.name) ? String(brief.name).slice(0, 24) : ''; }
+function saveProfile(nick, color){
+  profile.nick = cleanText(nick).slice(0, 20); if (PROFILE_COLORS.includes(color)) profile.color = color;
+  try { localStorage.setItem('pm-profile', JSON.stringify(profile)); } catch (e) {}
+  if (profile.color) netColor = profile.color; paintMyRing(); netLastKey = ''; netLastSend = 0;
+}
+/* my colour as a ring under my feet — the way everyone else sees me marked */
+let myRing = null;
+function paintMyRing(){
+  if (!myRing){ myRing = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.56, 24), new THREE.MeshBasicMaterial({ color: netColor, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
+    myRing.rotation.x = -Math.PI/2; myRing.position.y = 0.06; player.add(myRing); }
+  myRing.material.color.setHex(netColor);
+}
+paintMyRing();
 
 function peerTag(peer){
   const w = 420, h = 96, cv = document.createElement('canvas'); cv.width = w; cv.height = h; const x = cv.getContext('2d'), tx = new THREE.CanvasTexture(cv);
@@ -41,7 +57,7 @@ function addPeer(id, p){
   const body = person(peer.num, { shirt: peer.color, logo: logoTex(PLANET_C) }); body.scale.setScalar(1.15); g.add(body); peer.body = body;
   const tag = peerTag(peer); tag.position.y = 2.55; g.add(tag); peer.tag = tag;
   const ringM = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.56, 24), new THREE.MeshBasicMaterial({ color: peer.color, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
-  ringM.rotation.x = -Math.PI/2; ringM.position.y = 0.06; g.add(ringM);
+  ringM.rotation.x = -Math.PI/2; ringM.position.y = 0.06; g.add(ringM); peer.ring = ringM;
   g.visible = false; scene.add(g); peer.g = g;
   peers.set(id, peer); updatePeerCount();
   if (state !== 'loading') mini(lang === 'ar' ? `👋 ${t(visitorName(peer.num, peer.nick))} وصل للكوكب` : `👋 ${t(visitorName(peer.num, peer.nick))} landed on the planet`);
@@ -59,6 +75,8 @@ function onPeerState(p){
   let peer = peers.get(p.i) || addPeer(p.i, p);
   peer.last = performance.now(); peer.world = p.w; peer.ps = p.ps || null; peer.sw = p.sw || '';
   if (p.k !== undefined && p.k !== peer.nick){ peer.nick = p.k; peer.paint(); }
+  if (p.c !== undefined && p.c !== peer.color){ peer.color = p.c; peer.paint(); peer.ring.material.color.setHex(p.c);
+    const vis = peer.body.visible, nb = person(peer.num, { shirt: peer.color, logo: logoTex(PLANET_C) }); nb.scale.setScalar(1.15); nb.visible = vis; peer.g.remove(peer.body); peer.g.add(nb); peer.body = nb; }
   if (p.w === 'p' && p.p){ peer.tPos.fromArray(p.p); peer.tQuat.fromArray(p.q); }
   if (p.w === 'o' && p.o){ peer.tPos.copy(OFF).add(P3(p.o[0], p.o[1])); peer.tQuat.setFromEuler(new THREE.Euler(0, p.o[2], 0)); }
   if (!peer.g.visible && p.w !== 's'){ peer.pos.copy(peer.tPos); peer.quat.copy(peer.tQuat); }
@@ -80,7 +98,7 @@ function myState(){
 function netTick(now){
   if (!netLive) return;
   const s = myState(); if (!s) return;
-  const key = JSON.stringify([s.w, s.p, s.q, s.o, s.r, s.k, s.ps, s.sw, s.f]);
+  const key = JSON.stringify([s.w, s.p, s.q, s.o, s.r, s.k, s.ps, s.sw, s.f, s.c]);
   const due = key !== netLastKey ? NET.sendMs : NET.idleMs;
   if (now - netLastSend < due) return;
   netLastSend = now; netLastKey = key;
@@ -122,7 +140,7 @@ function netFrame(now){
 function updatePeerCount(){
   let el = document.getElementById('netcount');
   if (!el){ el = document.createElement('button'); el.type = 'button'; el.id = 'netcount'; el.className = 'chip panel'; (document.querySelector('#hud .bar') || document.body).appendChild(el);
-    el.onclick = () => { const list = [...peers.values()].map(p => t(visitorName(p.num, p.nick)) + (p.world === 'o' ? (lang === 'ar' ? ' (في المكتب)' : ' (in the office)') : p.world === 's' ? (lang === 'ar' ? ' (في الفضاء)' : ' (in space)') : ''));
+    el.onclick = () => { if (typeof openPeople === 'function') return openPeople(); const list = [...peers.values()].map(p => t(visitorName(p.num, p.nick)) + (p.world === 'o' ? (lang === 'ar' ? ' (في المكتب)' : ' (in the office)') : p.world === 's' ? (lang === 'ar' ? ' (في الفضاء)' : ' (in space)') : ''));
       mini(list.length ? list.join(' · ') : (lang === 'ar' ? 'إنت لوحدك دلوقتي' : "You're the only one here right now")); }; }
   const n = peers.size;
   el.hidden = !netLive;

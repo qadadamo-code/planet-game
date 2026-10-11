@@ -50,6 +50,9 @@ function drawMap(ctx, size, range, big){
   // target beyond the edge: a pointer on the rim
   if (tgt){ const [x, y, dist] = mapProject(tgt.dir, sc); if (dist > range){ const a = Math.atan2(y, x); ctx.save(); ctx.translate(Math.cos(a) * (r - 16), Math.sin(a) * (r - 16)); ctx.rotate(a);
       ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-6, -8); ctx.lineTo(-6, 8); ctx.closePath(); ctx.fillStyle = '#E05A5A'; ctx.fill(); ctx.restore(); } }
+  // race parcels
+  if (typeof RACE !== 'undefined' && RACE.on) for (const pc of RACE.parcels){ if (pc.got) continue; const [x, y, dist] = mapProject(pc.d, sc); if (dist > range) continue;
+    const s = big ? 6 : 8; ctx.fillStyle = '#C98A5A'; ctx.fillRect(x - s, y - s, s * 2, s * 2); ctx.lineWidth = 2; ctx.strokeStyle = '#F2C94C'; ctx.strokeRect(x - s, y - s, s * 2, s * 2); }
   // other visitors
   if (typeof peers !== 'undefined') for (const p of peers.values()){ if (p.world !== 'p') continue; const [x, y, dist] = mapProject(p.pos.clone().normalize(), sc); if (dist > range) continue;
     ctx.beginPath(); ctx.arc(x, y, big ? 6 : 8, 0, Math.PI * 2); ctx.fillStyle = '#' + new THREE.Color(p.color).getHexString(); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke(); }
