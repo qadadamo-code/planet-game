@@ -961,18 +961,26 @@ function mini(text){ document.querySelectorAll('.mini').forEach(e => e.remove())
 /* ---------- dialogue ---------- */
 let state = 'loading';         // loading | title | intro | play | talk | journal | exhibit | finale | final
 const dlg = { active: false, speaker: null, lines: [], i: 0, shown: 0, timer: null, done: null, studio: false };
-function talk(speaker, lines, studio, done){
+/* cta: optional buttons shown under the last line — [{ label: L(), act: fn, cls }] */
+function talk(speaker, lines, studio, done, cta){
   Sfx.open(); releaseAll();
-  Object.assign(dlg, { active: true, speaker, lines, i: 0, studio, done });
+  Object.assign(dlg, { active: true, speaker, lines, i: 0, studio, done, cta: cta || null });
   state = 'talk'; $('dialog').hidden = false; $('prompt').hidden = true; renderLine();
 }
 function renderLine(keepFull){
   const sp = $('speaker'); sp.textContent = t(dlg.speaker); sp.classList.toggle('studio', !!dlg.studio);
   $('pager').textContent = dlg.lines.length > 1 ? `${dlg.i+1}/${dlg.lines.length}` : '';
-  const full = t(dlg.lines[dlg.i]); clearInterval(dlg.timer);
+  const full = t(dlg.lines[dlg.i]); clearInterval(dlg.timer); renderCta();
   if (keepFull || reduce){ dlg.shown = full.length; $('line').textContent = full; return; }
   dlg.shown = 0; $('line').textContent = '';
   dlg.timer = setInterval(() => { dlg.shown += 2; if (dlg.shown % 6 === 0) Sfx.blip(); $('line').textContent = full.slice(0, dlg.shown); if (dlg.shown >= full.length) clearInterval(dlg.timer); }, 16);
+}
+function renderCta(){
+  const box = $('dlgcta'); if (!box) return;
+  const last = dlg.cta && dlg.i === dlg.lines.length - 1; box.hidden = !last; if (!last) return box.innerHTML = '';
+  box.innerHTML = dlg.cta.map((c, k) => `<button type="button" class="dcta ${c.cls || ''}" data-k="${k}">${t(c.label)}</button>`).join('');
+  box.querySelectorAll('button').forEach(b => b.onclick = e => { e.stopPropagation(); const c = dlg.cta[+b.dataset.k];
+    clearInterval(dlg.timer); dlg.active = false; dlg.done = null; $('dialog').hidden = true; box.hidden = true; state = 'play'; Sfx.click(); c.act(); });
 }
 function advance(){
   if (!dlg.active) return;

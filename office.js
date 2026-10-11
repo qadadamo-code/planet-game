@@ -4,7 +4,7 @@
 const OFF = new THREE.Vector3(0, -3000, 0);   // the office lives far below the planet; we teleport in
 const PW = 19, PH = 13.4;                       // plan size in metres
 const ROOMS = [
-  { id: 'back',    r: [0, 0, 2.8, 10.5],    c: 0x8E6BC2, n: L("Back corridor", "ممر خلفي") },
+  { id: 'back',    r: [0, 0, 2.8, 10.5],    c: 0x8E6BC2, n: L("Photo studio", "استوديو التصوير") },
   // service rooms exist in the layout but aren't shown or named — the restroom is closed off, the kitchen is a quiet coffee corner
   { id: 'bath1',   r: [2.8, 0, 8.5, 1.9],   c: 0x9AA3B8, n: L("", ""), hide: true, sealed: true },
   { id: 'kitchen', r: [2.8, 1.9, 8.5, 5.7], c: 0xC98A5A, n: L("", ""), hide: true },
@@ -41,7 +41,7 @@ const SEATS = [
   ['emp-002', 7.9, 6.6], ['emp-003', 7.9, 9.1],
   ['emp-001', 17.0, 7.2],                                                           // Mohammed Qadada — management
   ['emp-005', 9.6, 1.4], ['emp-004', 11.2, 1.4], ['emp-022', 9.6, 2.7], ['emp-007', 11.2, 2.7],      // meeting room
-  ['emp-015', 1.4, 3.0], ['emp-016', 1.4, 6.0],                                     // shoot crew by the back door
+  ['emp-015', 1.55, 4.4], ['emp-016', 1.55, 6.3],                                   // shoot crew: mid-shoot in the studio
 ];
 const WELCOME = {
   entry:   L("Welcome to Planet! Reception is straight ahead; management is through the corridor on the right.", "أهلاً بيك في Planet! الاستقبال قدامك، والإدارة من الممر على اليمين."),
@@ -51,7 +51,7 @@ const WELCOME = {
   meeting: L("The meeting room — this is where your brief becomes a plan.", "غرفة الاجتماعات — هنا البريف بتاعك بيتحوّل لخطة."),
   mgmt:    L("Management: take a seat on the sofa and tell us about your project — we'll answer the same day.", "الإدارة: اتفضل اقعد واحكيلنا عن مشروعك — هنرد عليك في نفس اليوم."),
   hall:    L("Rooms corridor: meeting room ahead, team room and management on the right.", "ممر الغرف: الاجتماعات قدامك، وغرفة الفريق والإدارة على اليمين."),
-  back:    L("Back corridor — the shoot crew loads gear here.", "الممر الخلفي — فريق التصوير بيجهّز معداته هنا."),
+  back:    L("The photo studio 📸 — the crew is shooting a product campaign right now.", "استوديو التصوير 📸 — الفريق بيصوّر حملة لمنتج دلوقتي."),
 };
 
 /* each person speaks in the voice of their job */
@@ -105,6 +105,51 @@ function labelSprite(text, col = '#12153A', border = '#8FB4E3', w = 512){
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 5; s.scale.set(w/96*0.42, 0.42, 1); return s;
 }
 function box(w, h, d, color, x, y, z, ink = true){ const m = mesh(new THREE.BoxGeometry(w, h, d), color, ink ? 1 : 0); m.position.set(x, y, z); oGroup.add(m); return m; }
+
+/* name + role, drawn as one card that appears only when you walk up to someone */
+function crewTag(m){
+  const w = 560, h = 150, cv = document.createElement('canvas'); cv.width = w; cv.height = h; const x = cv.getContext('2d'), tx = new THREE.CanvasTexture(cv);
+  const paint = () => { x.clearRect(0, 0, w, h);
+    x.fillStyle = '#12153A'; x.strokeStyle = '#F2C94C'; x.lineWidth = 6; x.beginPath(); x.roundRect ? x.roundRect(4, 4, w - 8, h - 8, 28) : x.rect(4, 4, w - 8, h - 8); x.fill(); x.stroke();
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = lang === 'ar' ? 'rtl' : 'ltr';
+    x.fillStyle = '#F4F7FC'; x.font = '800 48px IBM Plex Sans Arabic, sans-serif'; x.fillText(t(m.name), w/2, 52, w - 40);
+    x.fillStyle = '#F2C94C'; x.font = '600 32px IBM Plex Sans Arabic, sans-serif'; x.fillText(t(m.title), w/2, 104, w - 40);
+    tx.needsUpdate = true; };
+  paint(); langHooks.push(paint);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthTest: false })); s.renderOrder = 6; s.scale.set(w/h*0.62, 0.62, 1); return s;
+}
+
+/* the photo studio in the back: backdrop, lights, a model holding a client's product */
+const STUDIO_MODEL = [0.65, 5.35], STUDIO_FACE = { 'emp-015': STUDIO_MODEL, 'emp-016': STUDIO_MODEL };
+function holdCamera(p){ const c = mesh(new THREE.BoxGeometry(0.26, 0.18, 0.14), 0x1A1A1F); c.position.set(0, 1.36, 0.3); p.add(c);
+  const lens = mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.14, 12), 0x2B2B33, 0); lens.rotation.x = Math.PI/2; lens.position.set(0, 1.36, 0.42); p.add(lens);
+  const fl = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.03), new THREE.MeshBasicMaterial({ color: 0xFFFFFF })); fl.position.set(0.08, 1.47, 0.3); p.add(fl); p.userData.flash = fl; }
+function holdReflector(p){ const r = new THREE.Mesh(new THREE.CircleGeometry(0.42, 24), new THREE.MeshBasicMaterial({ color: 0xF4D78A, side: THREE.DoubleSide })); r.position.set(0.3, 1.1, 0.35); r.rotation.y = -0.6; p.add(r); }
+function buildStudio(){
+  // seamless backdrop on the west wall, curving onto the floor
+  const bd = oAt(0.05, 5.35); box(0.06, 1.25, 2.8, 0xF2E9DD, bd.x + 0.06, 0.66, bd.z, false); box(1.1, 0.02, 2.8, 0xF2E9DD, bd.x + 0.6, 0.075, bd.z, false);
+  box(0.1, 0.1, 3.0, 0x2B2420, bd.x + 0.08, 1.32, bd.z, false);
+  // softboxes on stands, aimed at the model
+  [[0.55, 3.75, 0.5], [0.55, 6.95, -0.5]].forEach(([x, y, a]) => { const p = oAt(x, y);
+    box(0.04, 1.5, 0.04, 0x2B2420, p.x, 0.75, p.z, false);
+    const sb = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.62, 0.2), new THREE.MeshBasicMaterial({ color: 0xFFF6E0 })); sb.position.set(p.x + 0.05, 1.55, p.z); sb.rotation.y = Math.PI/2 + a; oGroup.add(sb);
+    const back = mesh(new THREE.BoxGeometry(0.66, 0.66, 0.08), 0x1A1A1F, 0); back.position.copy(sb.position); back.rotation.copy(sb.rotation); back.translateZ(-0.13); oGroup.add(back);
+    const pl = new THREE.PointLight(0xFFF1D6, 0.35, 4); pl.position.set(p.x + 0.3, 1.5, p.z); oGroup.add(pl); oBlock(x - 0.15, y - 0.15, x + 0.15, y + 0.15); });
+  // a video camera on a tripod
+  { const p = oAt(1.65, 5.35); [-0.12, 0.12].forEach(dz => box(0.03, 1.1, 0.03, 0x2B2420, p.x, 0.55, p.z + dz, false)); box(0.03, 1.1, 0.03, 0x2B2420, p.x + 0.1, 0.55, p.z, false);
+    const cam = mesh(new THREE.BoxGeometry(0.42, 0.24, 0.2), 0x1A1A1F); cam.position.set(p.x, 1.18, p.z); oGroup.add(cam);
+    const ln = mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.2, 12), 0x2B2B33, 0); ln.rotation.z = Math.PI/2; ln.position.set(p.x - 0.28, 1.18, p.z); oGroup.add(ln);
+    const rec = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), new THREE.MeshBasicMaterial({ color: 0xFF3344 })); rec.position.set(p.x + 0.1, 1.33, p.z); oGroup.add(rec); oBlock(1.5, 5.2, 1.8, 5.5); }
+  // the model, posing with a product that carries a client's logo
+  const mdl = person(77, { look: 3, shirt: 0xE9A0B8 }); mdl.position.copy(oAt(STUDIO_MODEL[0], STUDIO_MODEL[1])); mdl.rotation.y = Math.PI/2; oGroup.add(mdl);
+  const prodC = CLIENTS.find(c => c.logo === 'lorya') || CLIENTS[0];
+  const prod = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.3, 0.12), new THREE.MeshBasicMaterial({ map: logoTex(prodC) })); prod.position.set(0.12, 1.12, 0.36); prod.rotation.y = 0.25; mdl.add(prod);
+  const cap = mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.08, 10), 0xF2C94C, 0); cap.position.set(0.12, 1.31, 0.36); mdl.add(cap);
+  oStudio = mdl; oBlock(0.3, 5.0, 1.0, 5.7);
+  // a little kit corner: camera bag and a flight case
+  const kb = oAt(2.35, 8.6); box(0.5, 0.35, 0.35, 0x2B2420, kb.x, 0.18, kb.z); box(0.45, 0.5, 0.32, 0x8A8F9C, kb.x, 0.6, kb.z, false); oBlock(2.1, 8.4, 2.6, 8.8);
+}
+let oStudio = null;
 
 /* ---------- décor kit ---------- */
 const WALL_H = 1.3, WALL_C = 0xF3EFE8;
@@ -177,6 +222,14 @@ function buildOffice(){
     box(0.54, 0.34, 0.04, 0x12153A, p.x, 1.02, p.z + 0.77, false); const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.48, 0.28), basic(0x8FB4E3)); scr.position.set(p.x, 1.02, p.z + 0.748); scr.rotation.y = Math.PI; oGroup.add(scr);
     box(0.06, 0.18, 0.06, 0x12153A, p.x, 0.86, p.z + 0.79, false);
     box(0.08, 0.1, 0.08, [0xE76F51, 0xF2C94C, 0x2E6BA9][Math.abs(Math.round(x*7 + y*3)) % 3], p.x + 0.36, 0.83, p.z + 0.42, false);
+    // devices: keyboard, mouse, a computer tower under the desk; every other desk adds a laptop or a drawing tablet
+    box(0.42, 0.025, 0.14, 0x2B2B33, p.x, 0.79, p.z + 0.5, false); box(0.06, 0.025, 0.09, 0x2B2B33, p.x + 0.29, 0.79, p.z + 0.5, false);
+    box(0.2, 0.42, 0.42, 0x1A1A1F, p.x - 0.3, 0.21, p.z + 0.6, false); const led = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.01), basic(0x5FE0FF)); led.position.set(p.x - 0.3, 0.36, p.z + 0.385); oGroup.add(led);
+    const v = Math.abs(Math.round(x*5 + y*11)) % 3;
+    if (v === 0){ box(0.3, 0.02, 0.22, 0xC0C6D2, p.x - 0.32, 0.79, p.z + 0.45, false); const lid = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.015), basic(0xC0C6D2)); lid.position.set(p.x - 0.32, 0.9, p.z + 0.57); lid.rotation.x = 0.25; oGroup.add(lid);
+      const ls = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.16), basic(0x8FB4E3)); ls.position.set(p.x - 0.32, 0.9, p.z + 0.562); ls.rotation.set(0.25, Math.PI, 0); oGroup.add(ls); }
+    else if (v === 1){ box(0.28, 0.02, 0.2, 0x12153A, p.x - 0.3, 0.79, p.z + 0.42, false); box(0.02, 0.02, 0.16, 0x8A8F9C, p.x - 0.18, 0.81, p.z + 0.42, false); }
+    else { box(0.16, 0.12, 0.05, 0x1A1A1F, p.x + 0.38, 0.86, p.z + 0.7, false); }
     oWalls.push({ a: new THREE.Vector2(x - 0.55, y + 0.55), b: new THREE.Vector2(x + 0.55, y + 0.55) }); };
 
   /* ── management: the biggest, best-dressed room ── */
@@ -213,7 +266,7 @@ function buildOffice(){
   oRug(12.6, 0.4, 15.0, 3.4, 0x3E3570); oRug(16.2, 0.4, 18.6, 3.4, 0x3E3570);
   oFrame(15.6, 0, 0.9, 0.6, pic(0)); oFrame(18.6, 0, 0.5, 0.6, pic(7)); oPlant(15.6, 3.3, 0.95); oPlant(12.6, 3.5, 0.8);
   oRug(3.3, 6.2, 6.1, 9.9, 0x2F4E7A);
-  oFrame(3.9, 5.7, 1.0, 0.65, pic(1)); oFrame(5.4, 5.7, 1.0, 0.65, pic(2)); oFrameW(2.8, 7.9, 1.2, 0.7, pic(4)); oFrameW(2.8, 9.6, 0.8, 0.55, pic(5));
+  oFrame(3.9, 5.7, 1.0, 0.65, pic(1)); oFrameW(2.8, 7.9, 1.2, 0.7, pic(4)); oFrameW(2.8, 9.6, 0.8, 0.55, pic(5));
   oPlant(3.15, 10.15, 1.0); oPlant(6.6, 10.2, 0.9); oLamp(6.7, 6.1);
 
   /* ── coffee corner (no sign): counter, machine, stools ── */
@@ -222,6 +275,12 @@ function buildOffice(){
   oWalls.push({ a: new THREE.Vector2(3.4, 2.3), b: new THREE.Vector2(7.8, 2.3) });
   [4.6, 5.6, 6.6].forEach(x => { const a = oAt(x, 2.95); box(0.32, 0.06, 0.32, 0xF2C94C, a.x, 0.62, a.z, false); box(0.05, 0.6, 0.05, 0x2B2420, a.x, 0.3, a.z, false); });
   oPlant(8.2, 5.4, 0.85);
+
+  /* ── photo studio in the back ── */
+  buildStudio();
+  /* ── shared devices: printers, a big screen in each team room ── */
+  [[8.5, 10.15], [18.65, 3.45]].forEach(([x, y]) => { const p = oAt(x, y); box(0.5, 0.32, 0.42, 0xE4E7EE, p.x, 0.62, p.z); box(0.5, 0.45, 0.42, 0xC9CED8, p.x, 0.23, p.z, false); box(0.34, 0.02, 0.2, 0xF4F7FC, p.x, 0.79, p.z + 0.05, false); oBlock(x - 0.25, y - 0.21, x + 0.25, y + 0.21); });
+  { const p = oAt(5.65, 5.7); box(1.3, 0.75, 0.05, 0x12153A, p.x, 0.8, p.z + 0.09, false); const sc = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.66), new THREE.MeshBasicMaterial({ map: logoTex(PLANET_C) })); sc.position.set(p.x, 0.8, p.z + 0.12); oGroup.add(sc); }
 
   /* ── reception & entrance ── */
   oRug(9.4, 7.3, 11.1, 9.9, 0x7A3E5C);
@@ -240,8 +299,10 @@ function buildOffice(){
     const n = parseInt(id.slice(4)), girl = [2,5,6,7,8,9,10,14,17,19,21,22,24].includes(n);
     const p = person(n * 3, { face: faceTex(m.photo), look: girl ? (n % 2 ? 3 : 5) : [0, 4, 1][n % 3], logo: logoTex(PLANET_C) });
     p.position.copy(P3(x, y)); p.rotation.y = 0; oGroup.add(p);
-    const tag = labelSprite(m.name); tag.position.copy(P3(x, y, 2.15)); oGroup.add(tag);
-    oSeats.push({ m, g: p, x, y, tag });
+    const tag = crewTag(m); tag.position.copy(P3(x, y, 2.3)); tag.visible = false; oGroup.add(tag);
+    const st = STUDIO_FACE[id]; if (st) p.rotation.y = Math.atan2(st[0] - x, st[1] - y);
+    if (id === 'emp-015') holdCamera(p); if (id === 'emp-016') holdReflector(p);
+    oSeats.push({ m, g: p, x, y, tag, fixed: !!st });
   }
   // the front door, glowing
   const door = P3(19, 12); const glow = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.2, 1.4), new THREE.MeshBasicMaterial({ color: 0xF2C94C, transparent: true, opacity: 0.6 })); glow.position.set(door.x + 0.05, 1.1, door.z); oGroup.add(glow);
@@ -316,10 +377,13 @@ function officeFrame(dt, now){
   const target = player.position.clone().add(new THREE.Vector3(0, 0.8, 0));
   camera.position.lerp(target.clone().add(new THREE.Vector3(3.6, 8.5, 7.8)), 1 - Math.exp(-4 * dt)); camera.up.set(0, 1, 0); camera.lookAt(target);
   // the team: they look at you and wave when you come close
+  if (oStudio) animatePerson(oStudio, 0, false, ts);
+  for (const s of oSeats) if (s.g.userData.flash) s.g.userData.flash.material.color.setHex((ts % 2.4) < 0.08 ? 0xFFFFFF : 0x555555);
   oNear = null; let best = 1.9;
-  for (const s of oSeats){ const d = Math.hypot(s.x - oPos.x, s.y - oPos.y); animatePerson(s.g, 0, d < 3.2, ts); s.tag.visible = d < 4.5;
-    if (d < 4){ const want = Math.atan2(oPos.x - s.x, oPos.y - s.y); let dA = want - s.g.rotation.y; dA = Math.atan2(Math.sin(dA), Math.cos(dA)); s.g.rotation.y += dA * (1 - Math.exp(-5 * dt)); }
+  for (const s of oSeats){ const d = Math.hypot(s.x - oPos.x, s.y - oPos.y); animatePerson(s.g, 0, !s.fixed && d < 3.2, ts); s.tag.visible = false;
+    if (d < 4 && !s.fixed){ const want = Math.atan2(oPos.x - s.x, oPos.y - s.y); let dA = want - s.g.rotation.y; dA = Math.atan2(Math.sin(dA), Math.cos(dA)); s.g.rotation.y += dA * (1 - Math.exp(-5 * dt)); }
     if (d < best){ best = d; oNear = s; } }
+  if (oNear) oNear.tag.visible = true;   // only the person you've walked up to shows their name and role
   if (state === 'play'){
     near = oNear ? { kind: 'emp', ref: oNear } : null;
     $('prompt').hidden = !near; if (near) $('promptText').textContent = `${t(UI.talk)} ${t(near.ref.m.name)}`;
@@ -329,8 +393,30 @@ function officeFrame(dt, now){
   }
   return true;
 }
+/* the call to action at the end of each conversation: start a brief with the service this person delivers */
+const DEPT_CTA = {
+  management: ['s8', L("📝 Start your project", "📝 ابدأ مشروعك")],
+  account_management: ['s3', L("📝 Start a brief with me", "📝 ابدأ بريفك معايا")],
+  content: ['s3', L("✍️ Request content", "✍️ اطلب محتوى")],
+  graphic_design: ['s2', L("🎨 Request a design", "🎨 اطلب تصميم")],
+  motion: ['s5', L("🎬 Request a video", "🎬 اطلب فيديو")],
+  video_editing: ['s5', L("🎬 Request a video", "🎬 اطلب فيديو")],
+  photography: ['s5', L("📷 Book a shoot", "📷 احجز جلسة تصوير")],
+  moderation: ['s3', L("📅 Plan my posts", "📅 خطّط بوستاتي")],
+  finance: ['s8', L("💼 Ask for a quote", "💼 اطلب عرض سعر")],
+  admin: [null, L("☕ Visit the office", "☕ زورنا في المكتب")],
+};
+function crewCta(m){
+  const [svc, label] = DEPT_CTA[m.dept] || DEPT_CTA.management, fe = m.name.en.split(' ')[0], fa = m.name.ar.split(' ')[0];
+  const msg = L(`Hi Planet 👋 I met ${m.name.en} (${m.title.en}) in your office and I'd like to talk about a project.`,
+                `أهلاً Planet 👋 قابلت ${m.name.ar} (${m.title.ar}) في مكتبكم وعايز أتكلم عن مشروع.`);
+  return [
+    { label, act: () => { if (svc && !brief.svcs.includes(svc)) brief.svcs.push(svc); if (svc && !(brief.wants[svc] || []).length) brief.wants[svc] = SERVICE_GETS[svc].map((_, k) => k); brief.step = 0; openExhibit(svc ? 'brief' : 'contact'); } },
+    { label: L(`💬 WhatsApp ${fe}`, `💬 كلّم ${fa} واتساب`), cls: 'wa', act: () => window.open('https://wa.me/201203101104?text=' + encodeURIComponent(t(msg)), '_blank', 'noopener') },
+    { label: L("👤 Profile", "👤 البروفايل"), cls: 'ghost', act: () => openExhibit('member', m.id) },
+  ];
+}
 function talkToCrew(s){
   const m = s.m;
-  if (m.id === 'emp-001') return talk(m.name, crewLines(m), true, () => openExhibit('contact'));
-  talk(m.name, crewLines(m), true, () => openExhibit('member', m.id));
+  talk(m.name, crewLines(m), true, () => openExhibit(m.id === 'emp-001' ? 'contact' : 'member', m.id), crewCta(m));
 }

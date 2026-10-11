@@ -102,6 +102,12 @@ body.ar .round{font-family:var(--ar);font-size:16px}
 @media (pointer:coarse){#prompt{bottom:calc(120px + env(safe-area-inset-bottom,0px))}}
 
 /* dialogue */
+#dlgcta{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+#dlgcta[hidden]{display:none}
+.dcta{font:inherit;font-weight:800;font-size:15px;padding:11px 18px;border-radius:999px;border:3px solid #12153A;background:#F2C94C;color:#12153A;cursor:pointer;box-shadow:0 4px 0 #12153A;transition:transform .12s}
+.dcta:hover{transform:translateY(-2px)}
+.dcta.wa{background:#25D366;color:#fff}
+.dcta.ghost{background:#F4F7FC}
 #dialog{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(700px,calc(100% - 28px));cursor:pointer;z-index:35}
 .tag{display:inline-block;background:var(--blue);color:#fff;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.08em;padding:9px 22px;border:3px solid var(--ink);border-bottom:0;border-radius:6px 6px 0 0;margin-inline-start:-6px;transform:rotate(-1.5deg);box-shadow:4px 0 0 var(--ink)}
 .tag.studio{background:var(--ink);border-color:var(--sky)}
@@ -383,6 +389,7 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <div id="dialog" hidden role="dialog" aria-live="polite">
   <span class="tag" id="speaker"></span>
   <div class="box"><span id="line"></span><span class="pager" id="pager"></span><span class="next" aria-hidden="true"><svg viewBox="0 0 10 12"><path d="M0 0 L10 6 L0 12 Z"/></svg></span></div>
+  <div id="dlgcta" hidden></div>
 </div>
 
 <div id="journal" class="layer" hidden>
@@ -429,11 +436,11 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js?v=8"></script>
-<script src="site-data.js?v=8"></script>
-<script src="game.js?v=8"></script>
-<script src="exhibit.js?v=8"></script>
-<script src="space.js?v=8"></script>
-<script src="office.js?v=8"></script>
+<script src="content.js?v=9"></script>
+<script src="site-data.js?v=9"></script>
+<script src="game.js?v=9"></script>
+<script src="exhibit.js?v=9"></script>
+<script src="space.js?v=9"></script>
+<script src="office.js?v=9"></script>
 </body>
 </html>

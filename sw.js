@@ -1,6 +1,6 @@
 /* Planet as an installable app: the game shell is cached on first visit so it opens instantly (and offline);
    images are cached as you meet them. Bump VERSION whenever game files change. */
-const VERSION = 'planet-v8';
+const VERSION = 'planet-v9';
 const SHELL = ['./', 'index.html', 'logo.png', 'img/mark.png',
   'models/char.glb', 'models/hq.glb', 'models/van.glb', 'audio/music.mp3', 'audio/birds.mp3', 'manifest.webmanifest', 'icon-192.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
