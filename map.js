@@ -78,7 +78,7 @@ function routeTo(target){
 let mapTick = 0;
 function mapFrame(now){
   requestAnimationFrame(mapFrame);
-  const c = mapEl(), show = (state === 'play' || state === 'talk') && !(typeof inOffice !== 'undefined' && inOffice) && !(typeof inSpace !== 'undefined' && inSpace) && !$('hud').hidden;
+  const c = mapEl(), show = (state === 'play' || state === 'talk') && !(typeof inOffice !== 'undefined' && inOffice) && !(typeof inSpace !== 'undefined' && inSpace) && !(typeof inBuilding !== 'undefined' && inBuilding) && !$('hud').hidden;
   c.hidden = !show;
   const bm = document.getElementById('bigmap'), bigOpen = bm && !bm.hidden;
   if (!show && !bigOpen) return;

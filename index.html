@@ -403,6 +403,13 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
   .tools{gap:6px}.tbtn{min-width:40px;height:36px;padding:0 8px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+#sitbubble{position:fixed;z-index:30;max-width:320px;width:calc(100vw - 20px);padding:12px 14px;font-size:14px;line-height:1.45}
+#sitbubble b{display:block;margin-bottom:8px}
+#sitbubble::after{content:"";position:absolute;bottom:-8px;left:50%;margin-left:-8px;border:8px solid transparent;border-bottom:0;border-top-color:var(--ink)}
+#sitbubble .sb-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+#sitbubble .sb-chips button{border:0;border-radius:999px;padding:6px 10px;background:#2E6BA9;color:#fff;font:600 12.5px inherit;font-family:inherit;cursor:pointer}
+#sitbubble .sb-row{display:flex;gap:6px}
+#sitbubble .sb-row button{flex:1;border:1px solid #C9CED8;border-radius:10px;padding:7px;background:#fff;font:600 12.5px inherit;font-family:inherit;cursor:pointer}
 </style>
 </head>
 <body class="ar">
@@ -502,15 +509,16 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js?v=13"></script>
-<script src="site-data.js?v=13"></script>
-<script src="game.js?v=13"></script>
-<script src="exhibit.js?v=13"></script>
-<script src="space.js?v=13"></script>
-<script src="office.js?v=13"></script>
+<script src="content.js?v=14"></script>
+<script src="site-data.js?v=14"></script>
+<script src="game.js?v=14"></script>
+<script src="exhibit.js?v=14"></script>
+<script src="space.js?v=14"></script>
+<script src="office.js?v=14"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="net.js?v=13"></script>
-<script src="extras.js?v=13"></script>
-<script src="map.js?v=13"></script>
+<script src="net.js?v=14"></script>
+<script src="interiors.js?v=14"></script>
+<script src="extras.js?v=14"></script>
+<script src="map.js?v=14"></script>
 </body>
 </html>

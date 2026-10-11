@@ -9,7 +9,7 @@ const hexCss = c => '#' + new THREE.Color(c).getHexString();
 function hashStr(s){ let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 function seeded(n){ let x = (n % 2147483646) + 1; return () => (x = (x * 16807) % 2147483647) / 2147483647; }
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const onPlanet = () => !(typeof inSpace !== 'undefined' && inSpace) && !(typeof inOffice !== 'undefined' && inOffice);
+const onPlanet = () => !(typeof inSpace !== 'undefined' && inSpace) && !(typeof inOffice !== 'undefined' && inOffice) && !(typeof inBuilding !== 'undefined' && inBuilding);
 const QS = new URLSearchParams(location.search);
 
 /* a modal card reused by the small panels here */
