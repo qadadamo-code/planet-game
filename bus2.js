@@ -40,15 +40,17 @@ function busArrive(p, k){
 
 /* ---------- my seat in the bus, and everyone else's ---------- */
 const BUS_SEATS = [[-0.48, 1.0], [0.48, 1.0], [-0.48, 0.25], [0.48, 0.25], [-0.48, -0.5], [0.48, -0.5], [-0.48, -1.25], [0.48, -1.25]];
-const seatOf = id => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) | 0; const s = BUS_SEATS[Math.abs(h) % BUS_SEATS.length]; return { x: s[0], z: s[1] }; };
+// every rider (me and everyone else on the bus) gets a different seat: the same sorted list on every screen gives the same answer
+const seatOf = id => { const ids = [...peers.values()].filter(pr => pr.bu || pr.id === id).map(pr => pr.id); if (onBus || id === netId) ids.push(netId);
+  const list = [...new Set(ids)].sort(), i = Math.max(0, list.indexOf(id)), s = BUS_SEATS[i % BUS_SEATS.length]; return { x: s[0], z: s[1] }; };
 function busSeatMe(){
-  const s = seatOf(netId); rig.visible = true; rig.position.set(s.x, 0.95, s.z); rig.scale.setScalar(0.8);
+  const s = seatOf(netId); rig.visible = true; rig.position.set(s.x, 0.72, s.z); rig.scale.setScalar(0.5);
   if (proc.legL){ proc.legL.rotation.x = proc.legR.rotation.x = -1.45; proc.knL.rotation.x = proc.knR.rotation.x = 1.4; proc.armL.rotation.x = proc.armR.rotation.x = -0.4; proc.body.position.y = 0; }
 }
 { const plainLeave = leaveBus; leaveBus = function(){ const was = onBus; plainLeave.apply(this, arguments); if (was){ rig.position.set(0, 0, 0); rig.scale.setScalar(1); } }; }
 { const plainMy = myState; myState = function(){ const s = plainMy(); if (s && onBus && s.w === 'p') s.bu = 1; return s; }; }
 { const plainState = onPeerState; onPeerState = function(p){ plainState(p); if (!p || p.i === netId) return; const peer = peers.get(p.i); if (!peer) return;
-    const was = !!peer.bu; peer.bu = p.bu ? seatOf(p.i) : null;
+    const was = !!peer.bu; peer.bu = p.bu ? seatOf(p.i) : null; for (const pr of peers.values()) if (pr.bu) pr.bu = seatOf(pr.id);   // someone got on or off: everyone shuffles to their seat
     if (!was && peer.bu && onBus) mini(lang === 'ar' ? `🚌 ${t(visitorName(peer.num, peer.nick))} ركب الباص معاك` : `🚌 ${t(visitorName(peer.num, peer.nick))} got on the bus`); }; }
 
 /* ---------- the bar: tour choice, next stop of the tour, passport, who's riding ---------- */

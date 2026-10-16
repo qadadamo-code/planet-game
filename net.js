@@ -127,7 +127,8 @@ function netFrame(now){
     if (drv){ peer.pos.copy(drv.pos); peer.quat.copy(drv.quat);
       if (drv.rk === 2) peer.body.position.set(0, 0.66, -0.55); else peer.body.position.set(0.38, 0.2, -0.15); peer.body.scale.setScalar(0.95); }
     else { const k = 1 - Math.exp(-10 * dt); peer.pos.lerp(peer.tPos, k); peer.quat.slerp(peer.tQuat, k);
-      if (peer.bu){ peer.body.position.set(peer.bu.x, 0.75, peer.bu.z); peer.body.scale.setScalar(0.9); }
+      if (peer.bu){ if (typeof bus !== 'undefined' && bus){ peer.pos.copy(bus.position); peer.quat.copy(bus.quaternion); }   // ride with the bus itself, not a lagging copy of their last packet
+        peer.body.position.set(peer.bu.x, 0.72, peer.bu.z); peer.body.scale.setScalar(0.5); }
       else if (peer.rk === 2){ peer.body.position.set(0, 0.62, 0.15); peer.body.scale.setScalar(0.95); } else { peer.body.position.set(0, 0, 0); peer.body.scale.setScalar(1.15); } }
     peer.g.position.copy(peer.pos); peer.g.quaternion.copy(peer.quat);
     peer.tag.visible = peer.id !== passengerOf && camera.position.distanceTo(peer.pos) > 5;   // a name tag right in front of the lens fills the screen
