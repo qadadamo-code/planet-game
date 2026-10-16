@@ -114,7 +114,7 @@ function busFrame(){
   const fwd = b.back ? d.clone().sub(b.back.d) : b.next.d.clone().sub(d); fwd.addScaledVector(up, -fwd.dot(up)); if (fwd.lengthSq() < 1e-10) fwd.copy(_bf); else fwd.normalize(); _bf.copy(fwd);
   const right = new THREE.Vector3().crossVectors(up, fwd), m = new THREE.Matrix4().makeBasis(right, up, fwd);
   bus.quaternion.setFromRotationMatrix(m); bus.position.copy(up).multiplyScalar(R + Math.max(0, heightAt(up)) + 0.02);
-  const moved = busPrevPos.distanceTo(bus.position); busPrevPos.copy(bus.position);
+  const moved = busPrevPos.distanceTo(bus.position); busPrevPos.copy(bus.position); bus.userData.sp = moved < 2 ? moved * 60 : 0;
   if (moved > 1e-4 && moved < 2) bus.traverse(o => { if (o.userData.wheel) o.rotation.x += moved * 2.5; });
   busTk.d.copy(up);
   // the bus doesn't drive through people: anyone standing in its way gets nudged onto the pavement

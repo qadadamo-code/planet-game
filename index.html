@@ -163,6 +163,23 @@ body.ar .round{font-family:var(--ar);font-size:16px}
 @media (pointer:coarse){#chatbtn{right:auto;left:22px;bottom:calc(172px + env(safe-area-inset-bottom,0px));width:48px;height:48px}#chatbox{right:auto;left:14px;bottom:calc(230px + env(safe-area-inset-bottom,0px))}.netact{bottom:calc(196px + env(safe-area-inset-bottom,0px))}}
 body.passenger #prompt{display:none!important}
 #netcount[hidden]{display:none}
+.cm{display:flex;gap:8px;align-items:flex-start;position:relative}.cm.grp{margin-top:-2px;padding-inline-start:36px}
+.cm-av{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--ink);color:#fff;font:800 13px/24px var(--display);text-align:center;font-style:normal;text-shadow:0 1px 0 rgba(0,0,0,.35)}
+.cm-b{min-width:0;max-width:calc(100% - 36px);display:grid;gap:2px}.cm-h{display:flex;gap:8px;align-items:baseline;font-size:12.5px}.cm-h small{color:#8A93AE;font-size:11px}
+.cm-name{cursor:pointer;text-decoration:underline dotted}.cm-t{background:#E8EEF8;border-radius:4px 14px 14px 14px;padding:7px 11px;line-height:1.45;overflow-wrap:anywhere;width:fit-content;max-width:100%}
+body.ar .cm-t{border-radius:14px 4px 14px 14px}.cm-t.emo{background:none;font-size:30px;padding:0 2px;line-height:1.1}
+.cm.me{flex-direction:row-reverse}.cm.me.grp{padding-inline-start:0;padding-inline-end:36px}.cm.me .cm-b{justify-items:end}.cm.me .cm-h{flex-direction:row-reverse}
+.cm.me .cm-t{background:#FFE58F;border-radius:14px 4px 14px 14px}body.ar .cm.me .cm-t{border-radius:4px 14px 14px 14px}
+.cm.dm .cm-t{background:#E5DBFF;outline:2px dashed #8E6BC2}.cm.ment .cm-t{box-shadow:0 0 0 3px #F2C94C}
+.cm-rs{display:flex;gap:4px;flex-wrap:wrap}.cm-r{font:inherit;font-size:12px;border:1.5px solid #cfd8ea;background:#fff;border-radius:999px;padding:1px 7px;cursor:pointer}.cm-r.on{border-color:var(--ink);background:#FFF3C4}
+.cm-bar{display:none;gap:2px;position:absolute;top:-14px;inset-inline-end:4px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:1px 4px;z-index:2;box-shadow:2px 2px 0 var(--ink)}
+.cm-bar button{border:0;background:none;font-size:15px;cursor:pointer;padding:1px 3px;transition:transform .12s}.cm-bar button:hover{transform:scale(1.3)}
+.cm:hover .cm-bar,.cm:focus-within .cm-bar{display:flex}@media (pointer:coarse){.cm:active .cm-bar{display:flex}}
+.ch-typing{min-height:16px;font-size:12px;color:#5B6584;font-weight:700}
+.ch-dm{display:flex;align-items:center;justify-content:space-between;gap:6px;background:#E5DBFF;border:2px solid #8E6BC2;border-radius:8px;padding:4px 8px;font-size:13px;font-weight:700}.ch-dm[hidden]{display:none}.ch-dm button{border:0;background:none;cursor:pointer;font-size:15px}
+.pp[data-id]{cursor:pointer}.pp[data-id]:hover{border-color:var(--ink)}.pp-dm{font-style:normal}
+#chatbox{width:min(380px,calc(100% - 28px));max-height:min(520px,calc(100% - 220px))}
+#chatlog{gap:8px;padding-top:12px}
 #dlgcta{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
 #dlgcta[hidden]{display:none}
 .dcta{font:inherit;font-weight:800;font-size:15px;padding:11px 18px;border-radius:999px;border:3px solid #12153A;background:#F2C94C;color:#12153A;cursor:pointer;box-shadow:0 4px 0 #12153A;transition:transform .12s}
@@ -429,6 +446,12 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 .avrow{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start}
 .avc{border:2px solid var(--ink);background:#fff;color:var(--ink);border-radius:999px;padding:5px 10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .avc.on{background:var(--gold)}
+.avtop{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}.avside{flex:1;min-width:180px;display:grid;gap:8px}
+.avprev{width:220px;height:250px;border-radius:14px;background:radial-gradient(circle at 50% 35%,#FFF6DD,#BFE3EE 70%);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.avsw{display:flex;flex-wrap:wrap;gap:6px}.avs{width:30px;height:30px;border-radius:50%;border:2px solid var(--ink);cursor:pointer;padding:0}.avs.on{outline:3px solid var(--gold);outline-offset:2px;transform:scale(1.12)}
+.avhuman,.avastro{display:grid;gap:8px}.avhuman[hidden],.avastro[hidden],.avhairc[hidden],.avscarf[hidden],.avbeard[hidden]{display:none}.avhairc,.avscarf,.avbeard{display:grid;gap:6px}
+.avrand{justify-self:start;background:#E8F4FF}
+#profilebox .xm-card{width:min(560px,100%)}
 .bdg{background:#eef2fa;border-radius:999px;padding:5px 10px;font-size:13px;font-weight:700}
 .bdg-big{font-size:64px;line-height:1}
 .wl-form{display:flex;gap:8px}.wl-form input{flex:1;min-width:0}.wl-form .xm-go{flex:none;padding-inline:16px}
@@ -476,6 +499,7 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
   <button class="panel tbtn" id="install" type="button" hidden aria-label="Install" data-t="installShort"></button>
   <button class="panel tbtn" id="dn" type="button" aria-label="Day / night">☀️</button>
   <button class="panel tbtn" id="snd" type="button" aria-label="Sound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path id="sndwave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path id="sndoff" d="M16 9l6 6M22 9l-6 6" hidden/></svg></button>
+  <button class="panel tbtn" id="voicebtn" type="button" aria-pressed="true">🗣️</button>
   <button class="panel tbtn" id="lang" type="button">EN</button>
 </div>
 
@@ -557,20 +581,24 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js?v=27"></script>
-<script src="site-data.js?v=27"></script>
-<script src="game.js?v=27"></script>
-<script src="exhibit.js?v=27"></script>
-<script src="space.js?v=27"></script>
-<script src="office.js?v=27"></script>
+<script src="content.js?v=28"></script>
+<script src="site-data.js?v=28"></script>
+<script src="game.js?v=28"></script>
+<script src="exhibit.js?v=28"></script>
+<script src="space.js?v=28"></script>
+<script src="office.js?v=28"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="net.js?v=27"></script>
-<script src="interiors.js?v=27"></script>
-<script src="extras.js?v=27"></script>
-<script src="features.js?v=27"></script>
-<script src="map.js?v=27"></script>
-<script src="roomfun.js?v=27"></script>
-<script src="bus.js?v=27"></script>
-<script src="analytics.js?v=27"></script>
+<script src="net.js?v=28"></script>
+<script src="interiors.js?v=28"></script>
+<script src="extras.js?v=28"></script>
+<script src="features.js?v=28"></script>
+<script src="map.js?v=28"></script>
+<script src="roomfun.js?v=28"></script>
+<script src="bus.js?v=28"></script>
+<script src="voice.js?v=28"></script>
+<script src="avatar.js?v=28"></script>
+<script src="staff.js?v=28"></script>
+<script src="chat.js?v=28"></script>
+<script src="analytics.js?v=28"></script>
 </body>
 </html>

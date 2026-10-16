@@ -46,9 +46,9 @@ function openPeople(){
   const where = p => { const b = p.world === 'b' && pois.find(x => x.id === p.bld); return p.world === 'o' ? (AR() ? 'في المكتب' : 'in the office') : p.world === 's' ? (AR() ? 'في الفضاء' : 'in space') : b ? (AR() ? 'جوّه ' : 'inside ') + t(b.name) : (AR() ? 'على الكوكب' : 'on the planet'); };
   const box = xModal('peoplebox', `<h3>👥 ${AR() ? `على الكوكب دلوقتي (${list.length + 1})` : `On the planet now (${list.length + 1})`}</h3>
     <div class="pplist"><div class="pp me"><i style="background:${hexCss(netColor)}"></i><b>${AR() ? 'إنت' : 'You'}</b><span id="ppme"></span></div>
-      ${list.map(p => `<div class="pp"><i style="background:${hexCss(p.color)}"></i><b data-n="${p.id}"></b><span>${where(p)}</span></div>`).join('')}</div>
+      ${list.map(p => `<div class="pp" data-id="${p.id}" role="button" tabindex="0"><i style="background:${hexCss(p.color)}"></i><b data-n="${p.id}"></b><span>${where(p)}</span><em class="pp-dm">💬</em></div>`).join('')}</div>
     <div class="xm-acts">
-      <button type="button" data-a="profile">👤 ${AR() ? 'اسمي ولوني' : 'My name & colour'}</button>
+      <button type="button" data-a="profile">👤 ${AR() ? 'شخصيتي' : 'My character'}</button>
       <button type="button" data-a="race">🏁 ${AR() ? 'سباق الطرود' : 'Parcel race'}</button>
       <button type="button" data-a="photo">📸 ${AR() ? 'صورة جماعية' : 'Group photo'}</button>
       <button type="button" data-a="chat">💬 ${AR() ? 'الدردشة' : 'Chat'}</button>
@@ -171,7 +171,7 @@ function snapPhoto(){
     camera.position.copy(head).addScaledVector(fwd, 3.6).addScaledVector(up, 0.7).addScaledVector(side, 0.8); camera.up.copy(up); camera.lookAt(head.addScaledVector(side, -0.6));
   }
   const tagsWere = [...peers.values()].map(p => [p, p.tag.visible]); tagsWere.forEach(([p]) => p.tag.visible = true);
-  renderer.render(scene, camera);
+  renderScene();
   const src = renderer.domElement;
   const W = 1080, H = Math.round(W * src.height / src.width), out = document.createElement('canvas'); out.width = W; out.height = H + 170; const x = out.getContext('2d');
   x.drawImage(src, 0, 0, W, H);

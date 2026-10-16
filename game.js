@@ -84,7 +84,10 @@ if (SHADOWS){ renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE
   sunLight.shadow.bias = -0.0008; sunLight.shadow.normalBias = 0.03; }
 
 /* a soft ramp instead of hard bands: lit faces glow, the shadow side stays light and colourful (painted, not inked) */
-const grad = (() => { const n = 64, a = new Uint8Array(n); for (let i=0;i<n;i++){ const x = i/(n-1), t = Math.min(1, Math.max(0, (x - 0.36) / 0.38)); a[i] = Math.round(255 * (0.44 + 0.56 * t*t*(3-2*t))); }
+/* cel shading in clear bands, like a hand-inked comic: a shadow tone, a mid tone and the lit tone,
+   with only a sliver of blend between them so the edges stay crisp but never alias */
+const grad = (() => { const n = 64, a = new Uint8Array(n); for (let i=0;i<n;i++){ const x = i/(n-1), s1 = Math.min(1, Math.max(0, (x - 0.33) / 0.05)), s2 = Math.min(1, Math.max(0, (x - 0.66) / 0.05));
+    a[i] = Math.round(255 * (0.6 + 0.2 * s1 + 0.2 * s2)); }
   const tx = new THREE.DataTexture(a, n, 1, THREE.LuminanceFormat); tx.minFilter = tx.magFilter = THREE.LinearFilter; tx.needsUpdate = true; return tx; })();
 /* the house style, applied to every cel-shaded surface at once: a warm rim of light on the edges
    that face away from the camera, and a touch more colour. One shared shader, so one compile. */
@@ -443,7 +446,7 @@ function RB(w, h, d){
   sp.lineTo(x0 + rc, y0 + sh); sp.quadraticCurveTo(x0, y0 + sh, x0, y0 + sh - rc); sp.lineTo(x0, y0 + rc); sp.quadraticCurveTo(x0, y0, x0 + rc, y0);
   const depth = Math.max(0.001, d - 2*b);
   const g = new THREE.ExtrudeGeometry(sp, { depth, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 3, curveSegments: 3 });
-  g.translate(0, 0, -depth/2); _rbCache.set(key, g); return g;
+  g.translate(0, 0, -depth/2); g._rb = true; _rbCache.set(key, g); return g;
 }
 /* ---------- buildings ---------- */
 function building(kind){
@@ -1150,6 +1153,7 @@ function buildSkyLife(){
 
 /* ---------- traffic: vans and townsfolk on the road graph ---------- */
 const vehicles = [], walkers = [];
+const _thrP = new THREE.Vector3(), _thrV = new THREE.Vector3(), _thrD = new THREE.Vector3(), _thrU = new THREE.Vector3(), _zeroV = new THREE.Vector3(), lastCarPos = new THREE.Vector3();
 function edgePoint(ei, s, lane, out){ const [ia,ib] = EDGES[ei], a = poiDirs[ia], b = poiDirs[ib], ang = a.angleTo(b), tt = clamp(s/(ang*R), 0, 1);
   const d = out || V(); d.copy(a).multiplyScalar(Math.sin((1-tt)*ang)).addScaledVector(b, Math.sin(tt*ang)).divideScalar(Math.sin(ang)).normalize();
   d.addScaledVector(edgeN[ei], lane/R).normalize(); return d; }
@@ -1343,8 +1347,13 @@ async function loadModels(progress){
         const dd = lf.getWorldPosition(V()).distanceTo(rf.getWorldPosition(V())); if (dd < best){ best = dd; idleTime = tt; } } }
       walkAction.time = idleTime; walkAction.timeScale = 0; mixer.update(0); }
   }
-  if (!charLoaded) buildProceduralPlayer();
-  // the messenger carries Planet's mark on their back
+  if (!charLoaded){ buildProceduralPlayer(); addMessengerPack(); }
+  else addMessengerPack();
+  if (hq){ const root = hq.scene; const holder = new THREE.Group(); holder.add(root); const s = fitHeight(root, 8.2); toonify(root, 0.03/s); root.position.y -= 0.5; root.rotation.y = HQ_YAW; hqModel = holder; hqModel.userData.dyn = true; }
+  if (van){ const root = van.scene; const holder = new THREE.Group(); holder.add(root); const s = fitHeight(root, 1.55); toonify(root, 0.025/s); root.rotation.y = VAN_YAW; vanModel = holder; }
+}
+/* the messenger carries Planet's mark on their back */
+function addMessengerPack(){
   { const pack = new THREE.Group(), par = proc.body || rig;
     if (proc.body){
       // a rounded life-support pack: soft white shell, two orange air tanks, and Planet's mark as a round patch
@@ -1363,8 +1372,6 @@ async function loadModels(progress){
       pack.position.set(0, BACKPACK_Y, BACKPACK_Z); pack.scale.set(1.15, 1.05, 1.2);
     }
     par.add(pack); }
-  if (hq){ const root = hq.scene; const holder = new THREE.Group(); holder.add(root); const s = fitHeight(root, 8.2); toonify(root, 0.03/s); root.position.y -= 0.5; root.rotation.y = HQ_YAW; hqModel = holder; hqModel.userData.dyn = true; }
-  if (van){ const root = van.scene; const holder = new THREE.Group(); holder.add(root); const s = fitHeight(root, 1.55); toonify(root, 0.025/s); root.rotation.y = VAN_YAW; vanModel = holder; }
 }
 const CHAR_YAW = 0, HQ_YAW = 0, VAN_YAW = Math.PI/2, BACKPACK_Y = 1.12, BACKPACK_Z = -0.2;
 
@@ -1416,7 +1423,7 @@ function applyLang(){
   document.querySelectorAll('[data-t]').forEach(el => { const v = UI[el.dataset.t]; if (v) el.innerHTML = t(v); });   // a missing key (stale cached file) must not stop the game from starting
   $('keys').innerHTML = t(UI.keys);
   langHooks.forEach(f => f());
-  updateHud(); if (dlg.active) renderLine(true); if (state === 'journal') renderJournal(); if (state === 'exhibit' && xRender) xRender();
+  updateHud(); if (typeof Voice !== 'undefined') Voice.paint(); if (dlg.active) renderLine(true); if (state === 'journal') renderJournal(); if (state === 'exhibit' && xRender) xRender();
 }
 $('lang').onclick = () => { Sfx.click(); lang = lang === 'en' ? 'ar' : 'en'; store.set('pm-lang', lang); applyLang(); };
 function syncSnd(){ $('sndwave').hidden = !Sfx.on; $('sndoff').hidden = Sfx.on; }
@@ -1474,6 +1481,7 @@ function renderLine(keepFull){
   const sp = $('speaker'); sp.textContent = t(dlg.speaker); sp.classList.toggle('studio', !!dlg.studio);
   $('pager').textContent = dlg.lines.length > 1 ? `${dlg.i+1}/${dlg.lines.length}` : '';
   const full = t(dlg.lines[dlg.i]); clearInterval(dlg.timer); renderCta();
+  if (!keepFull && typeof Voice !== 'undefined') Voice.say(full, t(dlg.speaker));
   if (keepFull || reduce){ dlg.shown = full.length; $('line').textContent = full; return; }
   dlg.shown = 0; $('line').textContent = '';
   dlg.timer = setInterval(() => { dlg.shown += 2; if (dlg.shown % 6 === 0) Sfx.blip(); $('line').textContent = full.slice(0, dlg.shown); if (dlg.shown >= full.length) clearInterval(dlg.timer); }, 16);
@@ -1483,14 +1491,14 @@ function renderCta(){
   const last = dlg.cta && dlg.i === dlg.lines.length - 1; box.hidden = !last; if (!last) return box.innerHTML = '';
   box.innerHTML = dlg.cta.map((c, k) => `<button type="button" class="dcta ${c.cls || ''}" data-k="${k}">${t(c.label)}</button>`).join('');
   box.querySelectorAll('button').forEach(b => b.onclick = e => { e.stopPropagation(); const c = dlg.cta[+b.dataset.k];
-    clearInterval(dlg.timer); dlg.active = false; dlg.done = null; $('dialog').hidden = true; box.hidden = true; state = 'play'; Sfx.click(); c.act(); });
+    clearInterval(dlg.timer); dlg.active = false; dlg.done = null; if (typeof Voice !== 'undefined') Voice.stop(); $('dialog').hidden = true; box.hidden = true; state = 'play'; Sfx.click(); c.act(); });
 }
 function advance(){
   if (!dlg.active) return;
   const full = t(dlg.lines[dlg.i]);
   if (dlg.shown < full.length){ clearInterval(dlg.timer); dlg.shown = full.length; $('line').textContent = full; return; }
   if (++dlg.i < dlg.lines.length) return renderLine();
-  dlg.active = false; $('dialog').hidden = true; state = 'play'; Sfx.close(); const d = dlg.done; dlg.done = null; d && d();
+  dlg.active = false; $('dialog').hidden = true; state = 'play'; Sfx.close(); if (typeof Voice !== 'undefined') Voice.stop(); const d = dlg.done; dlg.done = null; d && d();
 }
 $('dialog').addEventListener('click', advance);
 
@@ -1695,11 +1703,15 @@ function viewPull(base, want){
     _vcl.copy(_h0).addScaledVector(_seg, t); if (_vcl.distanceTo(_op) < rad) pull = Math.min(pull, Math.max(0.32, t - rad / Math.sqrt(L2))); }
   return pull;
 }
+let talkZoom = 0;
 function updateCamera(dt, k){
+  // during a conversation the camera eases in close and low, like a scene in a film
+  talkZoom += ((state === 'talk' && flyY < 1 ? 1 : 0) - talkZoom) * (1 - Math.exp(-2.6 * dt));
+  const cDist = camDist * (1 - 0.4 * talkZoom), cH = camH * (1 - 0.32 * talkZoom);
   const base = tmp.copy(pDir).multiplyScalar(R + Math.max(heightAt(pDir), SEA + 0.12) + flyY);
-  const want = tmp2.copy(base).addScaledVector(pDir, camH + flyY * 0.45).addScaledVector(camFwd, -camDist - flyY * 0.35);
+  const want = tmp2.copy(base).addScaledVector(pDir, cH + flyY * 0.45).addScaledVector(camFwd, -cDist - flyY * 0.35);
   { const target = state === 'play' && flyY < 1 ? viewPull(base, want) : 1; camPull += (target - camPull) * (1 - Math.exp(-(target < camPull ? 9 : 2.2) * dt));
-    if (camPull < 0.999) want.copy(base).addScaledVector(pDir, camH + (1 - camPull) * 1.6).addScaledVector(camFwd, -camDist * camPull); }
+    if (camPull < 0.999) want.copy(base).addScaledVector(pDir, cH + (1 - camPull) * 1.6).addScaledVector(camFwd, -cDist * camPull); }
   // never dip under the ground
   const wd = want.clone().normalize(), minR = R + Math.max(heightAt(wd), SEA) + 0.9; if (want.length() < minR) want.setLength(minR);
   // travel around the planet, never through it: interpolate direction and distance separately
@@ -1740,6 +1752,7 @@ let perfN = 0, perfSum = 0, lastDrop = 0;
 function frame(now){
   const raw = now - last;
   if (raw < 120 && document.visibilityState === 'visible' && state !== 'loading'){ perfSum += raw; if (++perfN >= 90){ const avg = perfSum / perfN; perfN = 0; perfSum = 0;
+    if (avg > 30 && dprNow <= DPR_MIN + 0.01 && inkOn && now - lastDrop > 6000){ inkOn = false; lastDrop = now; }
     if (avg > 26 && dprNow > DPR_MIN + 0.01){ dprNow = Math.max(DPR_MIN, dprNow - 0.2); lastDrop = now; renderer.setPixelRatio(dprNow); resize(); }
     else if (avg < 15 && dprNow < DPR_MAX - 0.01 && now - lastDrop > 15000){ dprNow = Math.min(DPR_MAX, dprNow + 0.1); renderer.setPixelRatio(dprNow); resize(); } } }
   const dt = Math.min(0.05, (now - last)/1000); last = now; const ts = now/1000;
@@ -1769,7 +1782,25 @@ function frame(now){
     if (blocked){ v.honk += dt; v.wait = (v.wait || 0) + dt;  if (v.wait > 4.5){ v.ghost = 2.5; v.wait = 0; } } else { v.honk = Math.min(v.honk, 0); v.wait = 0; }
     advanceOnGraph(v, v.speed*dt); poseOnGraph(v, -0.55, 0);
   }
+  // anything on wheels coming at a pedestrian: my car, the vans, the tour bus
+  const threats = [];
+  if (riding && car && !(car.userData.ship && flyY > 1.2)){ car.getWorldPosition(_thrP); const v = _thrV.copy(_thrP).sub(lastCarPos); const sp = v.length() / Math.max(dt, 1e-3);
+    if (sp > 1.2 && sp < 80) threats.push({ p: _thrP.clone(), f: v.normalize().clone(), sp }); lastCarPos.copy(_thrP); }
+  for (const v of vehicles) if (v.speed > 1) threats.push({ p: v.g.position, f: v.g.getWorldDirection(V()), sp: v.speed });
+  if (typeof bus !== 'undefined' && bus && bus.visible && bus.userData.sp > 1) threats.push({ p: bus.position, f: bus.getWorldDirection(V()), sp: bus.userData.sp });
   for (const w of walkers){
+    // see it coming → jump out of the way, to the side the vehicle isn't heading
+    w.dodge = w.dodge || V(); w.dodgeT = Math.max(0, (w.dodgeT || 0) - dt);
+    for (const th of threats){ const to = _thrD.copy(w.g.position).sub(th.p), dist = to.length(); if (dist > 4 + th.sp * 0.7) continue;
+      const along = to.dot(th.f); if (along < -0.6) continue; const lat = to.clone().addScaledVector(th.f, -along); if (lat.length() > 1.15) continue;
+      if (w.dodgeT < 0.2){ const up = _thrU.copy(w.g.position).normalize(), side = lat.clone(); side.addScaledVector(up, -side.dot(up)); side.addScaledVector(th.f, -side.dot(th.f));
+        if (side.lengthSq() < 0.0025) side.crossVectors(up, th.f); side.addScaledVector(up, -side.dot(up)).normalize(); w.dodgeGoal = side.multiplyScalar(3.0); w.hopT = 0; if (w.g.position.distanceTo(player.position) < 25) Sfx.blip(); }
+      w.dodgeT = 1.6; }
+    const goal = w.dodgeT > 0 && w.dodgeGoal ? w.dodgeGoal : _zeroV;
+    w.dodge.lerp(goal, 1 - Math.exp(-(w.dodgeT > 0 ? 11 : 1.6) * dt));
+    if (w.dodgeT > 0 || w.dodge.lengthSq() > 0.01){ w.hopT = (w.hopT || 0) + dt;
+      const hop = w.hopT < 0.45 ? Math.sin(w.hopT / 0.45 * Math.PI) * 0.7 : 0; poseOnGraph(w, -1.9, 0); w.g.position.add(w.dodge).addScaledVector(_thrU.copy(w.g.position).normalize(), hop);
+      animatePerson(w.g, w.dodgeT > 0 ? w.hopT * 14 : 0, w.dodgeT > 0, ts); if (w.dodgeT > 0){ w.g.userData.armL.rotation.z = 2.4; w.g.userData.armR.rotation.z = -2.4; } continue; }
     const close = state !== 'title' && w.g.position.distanceTo(player.position) < 3;
     if (close || w.pause > 0){ w.pause = Math.max(0, w.pause - dt); animatePerson(w.g, 0, close, ts); poseOnGraph(w, -1.9, 0); if (close) faceToward(w.g, player.position); continue; }
     advanceOnGraph(w, 1.3*dt); w.walkT += dt*6; poseOnGraph(w, -1.9, 0); animatePerson(w.g, w.walkT, false, ts);
@@ -1822,12 +1853,53 @@ function frame(now){
   }
   updateBursts(dt); animateCars(now); fitSpritesFrame();
   placeSun();
-  renderer.render(scene, camera);
+  renderScene();
   requestAnimationFrame(frame);
 }
 
-function resize(){ const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.fov = w < h ? 66 : 55; camera.updateProjectionMatrix(); }
+function resize(){ const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.fov = w < h ? 66 : 55; camera.updateProjectionMatrix(); if (inkRT) setupInk(); }
 addEventListener('resize', resize); if (window.visualViewport) visualViewport.addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250));
+
+/* ---------- ink: outlines drawn over the finished frame ----------
+   The scene renders into an off-screen target with its depth; a full-screen pass then finds edges —
+   silhouettes (big jumps in depth), creases (where the surface bends) and colour borders — and inks
+   them in a dark blue-grey, thinning out with distance. One pass covers every object on the planet. */
+let inkOn = true, inkRT = null, inkScene = null, inkCam = null, inkMat = null;
+function inkSize(){ const sz = renderer.getDrawingBufferSize(new THREE.Vector2()); return [Math.max(2, sz.x), Math.max(2, sz.y)]; }
+function setupInk(){
+  const [w, h] = inkSize();
+  if (!inkRT){ const ms = renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget;
+    inkRT = ms ? new THREE.WebGLMultisampleRenderTarget(w, h, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat }) : new THREE.WebGLRenderTarget(w, h, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat });
+    if (ms) inkRT.samples = 4;
+    inkRT.depthTexture = new THREE.DepthTexture(w, h); inkRT.depthTexture.type = THREE.UnsignedIntType;
+    inkMat = new THREE.ShaderMaterial({ depthTest: false, depthWrite: false,
+      uniforms: { tCol: { value: inkRT.texture }, tDep: { value: inkRT.depthTexture }, px: { value: new THREE.Vector2(1 / w, 1 / h) }, near: { value: camera.near }, far: { value: camera.far }, ink: { value: new THREE.Color(0x232838) }, wid: { value: 1 } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: `uniform sampler2D tCol; uniform sampler2D tDep; uniform vec2 px; uniform float near; uniform float far; uniform vec3 ink; uniform float wid; varying vec2 vUv;
+        float lin(vec2 uv){ float z = texture2D(tDep, uv).x * 2.0 - 1.0; return 2.0 * near * far / (far + near - z * (far - near)); }
+        float lum(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
+        void main(){
+          vec4 c = texture2D(tCol, vUv); vec2 o = px * wid;
+          float d0 = lin(vUv), dl = lin(vUv - vec2(o.x, 0.0)), dr = lin(vUv + vec2(o.x, 0.0)), du = lin(vUv + vec2(0.0, o.y)), dd = lin(vUv - vec2(0.0, o.y));
+          float sil = max(max(abs(dl - d0), abs(dr - d0)), max(abs(du - d0), abs(dd - d0))) / max(d0, 0.5);
+          float crease = (abs(dl + dr - 2.0 * d0) + abs(du + dd - 2.0 * d0)) / max(d0, 0.5);
+          vec3 cl = texture2D(tCol, vUv - vec2(o.x, 0.0)).rgb, cr = texture2D(tCol, vUv + vec2(o.x, 0.0)).rgb, cu = texture2D(tCol, vUv + vec2(0.0, o.y)).rgb, cd = texture2D(tCol, vUv - vec2(0.0, o.y)).rgb;
+          float cdiff = max(max(abs(lum(cl) - lum(cr)), abs(lum(cu) - lum(cd))), 0.0);
+          float e = max(smoothstep(0.035, 0.09, sil), smoothstep(0.012, 0.03, crease) * 0.85);
+          e = max(e, smoothstep(0.3, 0.46, cdiff) * 0.45);
+          e *= 1.0 - smoothstep(70.0, 150.0, d0);                 // far away the lines fade out
+          gl_FragColor = vec4(mix(c.rgb, ink, e * 0.82), 1.0);
+        }` });
+    inkScene = new THREE.Scene(); inkCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); inkScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), inkMat)); }
+  else { inkRT.setSize(w, h); inkRT.depthTexture.image.width = w; inkRT.depthTexture.image.height = h; inkRT.depthTexture.needsUpdate = true; inkMat.uniforms.px.value.set(1 / w, 1 / h); }
+  inkMat.uniforms.wid.value = Math.max(1, dprNow * 0.75);
+}
+function renderScene(){
+  if (!inkOn){ renderer.render(scene, camera); return; }
+  if (!inkRT) setupInk();
+  inkMat.uniforms.near.value = camera.near; inkMat.uniforms.far.value = camera.far;
+  renderer.setRenderTarget(inkRT); renderer.render(scene, camera); renderer.setRenderTarget(null); renderer.render(inkScene, inkCam);
+}
 
 /* ---------- start ---------- */
 $('begin').onclick = () => {
