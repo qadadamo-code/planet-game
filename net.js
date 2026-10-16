@@ -84,9 +84,9 @@ function onPeerState(p){
   if (!peer.g.visible && p.w !== 's'){ peer.pos.copy(peer.tPos); peer.quat.copy(peer.tQuat); }
   const riding = !!p.r;
   if (riding !== peer.riding){ peer.riding = riding;
-    if (riding){ peer.car = makeCar(peer.color, 0xF4F7FC); peer.g.add(peer.car); peer.body.visible = false; peer.tag.position.y = 2.9; }
+    if (riding){ peer.car = p.r === 2 ? makeShip() : makeCar(peer.color, 0xF4F7FC); peer.g.add(peer.car); peer.body.visible = false; peer.tag.position.y = 2.9; }
     else { if (peer.car) peer.g.remove(peer.car); peer.car = null; peer.body.visible = true; peer.tag.position.y = 2.55; } }
-  if (peer.car) setCarStyle(peer.car, !!p.f);
+  if (peer.car && peer.car.userData.car) setCarStyle(peer.car, !!p.f);
 }
 
 function myState(){
@@ -94,7 +94,7 @@ function myState(){
   const base = { i: netId, n: netNum, c: netColor, k: myNick() };
   if (typeof inSpace !== 'undefined' && inSpace) return { ...base, w: 's', sw: (typeof cur !== 'undefined' && cur) ? cur.id : '' };
   if (typeof inOffice !== 'undefined' && inOffice) return { ...base, w: 'o', o: [+oPos.x.toFixed(2), +oPos.y.toFixed(2), +oYaw.toFixed(2)] };
-  return { ...base, w: 'p', r: riding ? 1 : 0, f: riding && car && car.userData.car.future ? 1 : 0, ps: passengerOf || undefined, p: player.position.toArray().map(v => +v.toFixed(2)), q: player.quaternion.toArray().map(v => +v.toFixed(3)) };
+  return { ...base, w: 'p', r: riding ? (car && car.userData.ship ? 2 : 1) : 0, f: riding && car && car.userData.car && car.userData.car.future ? 1 : 0, ps: passengerOf || undefined, p: player.position.toArray().map(v => +v.toFixed(2)), q: player.quaternion.toArray().map(v => +v.toFixed(3)) };
 }
 
 function netTick(now){

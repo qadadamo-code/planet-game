@@ -374,8 +374,8 @@ function officeFrame(dt, now){
   // pose the messenger
   player.position.copy(OFF).add(P3(oPos.x, oPos.y)); player.quaternion.setFromEuler(new THREE.Euler(0, oYaw, 0));
   shadow.position.copy(player.position).add(new THREE.Vector3(0, 0.07, 0)); shadow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0)); shadow.scale.setScalar(1);
-  if (mixer){ walkAction.timeScale = moving ? 1.2 : 0; if (!moving){ let d = idleTime - walkAction.time; d -= Math.round(d/clipDur)*clipDur; walkAction.time += d * (1 - Math.exp(-10*dt)); } mixer.update(dt); }
-  rig.position.y = moving ? 0 : Math.sin(now * 0.0022) * 0.012;
+  if (mixer){ walkAction.timeScale = moving ? 1.2 : 0; if (!moving){ let d = idleTime - walkAction.time; d -= Math.round(d/clipDur)*clipDur; walkAction.time += d * (1 - Math.exp(-10*dt)); } mixer.update(dt); rig.position.y = moving ? 0 : Math.sin(now * 0.0022) * 0.012; }
+  else if (!sitting) astroPose(moving, moving ? 3.2 : 0, dt, now, false);
   // camera: the floor-plan view from the entrance side
   const target = player.position.clone().add(new THREE.Vector3(0, 0.8, 0));
   camera.position.lerp(target.clone().add(new THREE.Vector3(3.6, 8.5, 7.8)), 1 - Math.exp(-4 * dt)); camera.up.set(0, 1, 0); camera.lookAt(target);

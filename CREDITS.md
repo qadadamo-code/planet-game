@@ -6,4 +6,4 @@ All sounds are CC0 (public domain):
 - Birds ambience: "Park ambiences" by Thimras — https://opengameart.org/content/park-ambiences
 - Footsteps, interface sounds, page flips and jingles: Kenney (kenney.nl) — Interface Sounds, RPG Audio, Impact Sounds, Music Jingles
 
-3D models for the messenger, Planet HQ and the delivery van were generated for Planet with Meshy (via Higgsfield).
+3D models for Planet HQ and the delivery van were generated for Planet with Meshy (via Higgsfield). The astronaut messenger, the shuttle and the client storefronts are built in code.

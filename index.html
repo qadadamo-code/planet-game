@@ -422,6 +422,7 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 .wl-list{display:grid;gap:8px;text-align:start;max-height:42vh;overflow-y:auto}
 .wl-m{background:#FFF8E0;border:2px solid #f0e2b0;border-radius:10px;padding:8px 10px;display:grid;gap:2px}
 .wl-m b{font-size:13px}.wl-m span{font-weight:600;line-height:1.5;overflow-wrap:anywhere}.wl-m small{color:#8a93ad;font-size:11px}
+.wl-del{justify-self:start;margin-top:4px;border:0;background:#fff;color:#c4452a;font:700 12px inherit;padding:4px 10px;border-radius:999px;box-shadow:0 1px 0 #e7d9b0;cursor:pointer}.wl-del:disabled{opacity:.5}
 #missionchip{position:fixed;top:calc(266px + env(safe-area-inset-top,0px));inset-inline-end:14px;z-index:21;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font:inherit;font-weight:800;font-size:13px;cursor:pointer;max-width:220px;white-space:nowrap}
 #missionchip[hidden]{display:none}#missionchip b{font-size:12px;background:var(--gold);border-radius:999px;padding:1px 7px}
 .ms-steps{text-align:start;margin:0;padding-inline-start:4px;list-style:none;display:grid;gap:8px}
@@ -442,10 +443,12 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
   #raceboard{top:calc(200px + env(safe-area-inset-top,0px))}
   #chatbtn{left:164px;bottom:calc(30px + env(safe-area-inset-bottom,0px))}
 }
+#vig{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(120% 95% at 50% 45%,rgba(0,0,0,0) 58%,rgba(18,30,46,.22) 100%)}
 </style>
 </head>
 <body class="ar">
 <canvas id="world" tabindex="-1" aria-label="A small 3D planet you can walk around"></canvas>
+<div id="vig" aria-hidden="true"></div>
 
 <div id="loading" class="layer">
   <div class="env">
@@ -541,19 +544,19 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js?v=22"></script>
-<script src="site-data.js?v=22"></script>
-<script src="game.js?v=22"></script>
-<script src="exhibit.js?v=22"></script>
-<script src="space.js?v=22"></script>
-<script src="office.js?v=22"></script>
+<script src="content.js?v=23"></script>
+<script src="site-data.js?v=23"></script>
+<script src="game.js?v=23"></script>
+<script src="exhibit.js?v=23"></script>
+<script src="space.js?v=23"></script>
+<script src="office.js?v=23"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="net.js?v=22"></script>
-<script src="interiors.js?v=22"></script>
-<script src="extras.js?v=22"></script>
-<script src="features.js?v=22"></script>
-<script src="map.js?v=22"></script>
-<script src="roomfun.js?v=22"></script>
-<script src="analytics.js?v=22"></script>
+<script src="net.js?v=23"></script>
+<script src="interiors.js?v=23"></script>
+<script src="extras.js?v=23"></script>
+<script src="features.js?v=23"></script>
+<script src="map.js?v=23"></script>
+<script src="roomfun.js?v=23"></script>
+<script src="analytics.js?v=23"></script>
 </body>
 </html>

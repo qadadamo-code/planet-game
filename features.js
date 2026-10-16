@@ -50,6 +50,7 @@ function findHead(){
   if (headInfo) return headInfo;
   let hb = null; rig.traverse(o => { if (!hb && o.isBone && /head$/i.test(o.name)) hb = o; });
   if (!hb) rig.traverse(o => { if (!hb && o.isBone && /head/i.test(o.name) && !/top|end/i.test(o.name)) hb = o; });
+  if (!hb && proc.head){ headBone = proc.head; headInfo = { r: 0.42, lift: 0.36 }; return headInfo; }
   headBone = hb; headInfo = { r: hb ? 0.29 : 0.34, lift: hb ? 0.25 : 0 }; return headInfo;
 }
 function paintMyAvatar(){
@@ -139,8 +140,21 @@ function buildWalls(){
     addObstacle(d, 1.6); addTk({ d, r: 4.2, kind: 'wall', ref: w, label: L(`✍️ Write on ${title.en}`, `✍️ اكتب على ${title.ar}`) }); WALLS.push(w); });
   loadWalls();
 }
+/* walls refresh themselves: a message lives three weeks, its author can take it down any time
+   (the browser keeps a private delete key per message), and the admin dashboard can remove any */
+const WALL_DAYS = 21;
+const wallKeys = (() => { try { return JSON.parse(localStorage.getItem('pm-wallkeys') || '{}'); } catch (e) { return {}; } })();
+const saveWallKeys = () => { try { localStorage.setItem('pm-wallkeys', JSON.stringify(wallKeys)); } catch (e) {} };
+const newKey = () => { const a = new Uint8Array(18); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); };
+async function deleteWallMsg(m){
+  const key = wallKeys[m.id]; if (!key) return false;
+  try { const r = await fetch(NET.url + '/functions/v1/game-wall', { method: 'POST', headers: { 'content-type': 'application/json', apikey: NET.key }, body: JSON.stringify({ a: 'del', id: m.id, key }) });
+    const j = await r.json(); if (!j.ok) return false; } catch (e) { return false; }
+  delete wallKeys[m.id]; saveWallKeys(); return true;
+}
 async function loadWalls(){
-  const rows = await sbGet('game_wall?select=nick,color,msg,wall,created_at&order=created_at.desc&limit=120'); if (!rows) return;
+  const since = new Date(Date.now() - WALL_DAYS * 864e5).toISOString();
+  const rows = await sbGet(`game_wall?select=id,nick,color,msg,wall,created_at&created_at=gte.${since}&order=created_at.desc&limit=120`); if (!rows) return;
   for (const w of WALLS){ w.msgs = rows.filter(r => r.wall === w.idx); w.paint(); }
   const box = document.getElementById('wallbox'); if (box && !box.hidden && box._w) renderWallList(box, box._w);
 }
@@ -148,18 +162,26 @@ function renderWallList(box, w){
   const list = box.querySelector('.wl-list'); list.textContent = '';
   if (!w.msgs.length){ const e = document.createElement('p'); e.className = 'xm-sub'; e.textContent = AR() ? 'لسه مفيش رسايل — إنت أول واحد' : 'No messages yet — you\'re the first'; list.appendChild(e); }
   for (const m of w.msgs.slice(0, 40)){ const row = document.createElement('div'); row.className = 'wl-m'; const b = document.createElement('b'); b.textContent = m.nick; b.style.color = hexCss(m.color || 0x12153A) === '#f4f7fc' ? '#5a6688' : hexCss(m.color || 0x12153A);
-    const s = document.createElement('span'); s.textContent = m.msg; const tm = document.createElement('small'); tm.textContent = new Date(m.created_at).toLocaleDateString(AR() ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short' }); row.append(b, s, tm); list.appendChild(row); }
+    const s = document.createElement('span'); s.textContent = m.msg; const tm = document.createElement('small'); tm.textContent = new Date(m.created_at).toLocaleDateString(AR() ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short' }); row.append(b, s, tm);
+    if (m.id && wallKeys[m.id]){ const del = document.createElement('button'); del.type = 'button'; del.className = 'wl-del'; del.textContent = AR() ? '🗑 احذف' : '🗑 Delete';
+      del.onclick = async () => { del.disabled = true; if (!await deleteWallMsg(m)){ del.disabled = false; return mini(AR() ? '⏳ ماقدرناش نحذفها، جرب تاني' : '⏳ Couldn\'t delete it, try again'); }
+        w.msgs = w.msgs.filter(x => x.id !== m.id); w.paint(); renderWallList(box, w); if (netLive) netChan.send({ type: 'broadcast', event: 'wall', payload: { w: w.idx } }); mini(AR() ? '🗑 رسالتك اتشالت' : '🗑 Your message is gone'); };
+      row.appendChild(del); }
+    list.appendChild(row); }
 }
 function openWall(w){
-  const box = xModal('wallbox', `<h3>✍️ ${t(w.title)}</h3><p class="xm-sub">${AR() ? 'سيب رسالة أو توقيع — هتفضل هنا للزوار اللي جايين' : 'Leave a message or your signature — it stays for the visitors after you'}</p>
+  const box = xModal('wallbox', `<h3>✍️ ${t(w.title)}</h3><p class="xm-sub">${AR() ? 'سيب رسالة أو توقيع — بتفضل ٣ أسابيع، وتقدر تحذفها في أي وقت' : 'Leave a message or your signature — it stays for three weeks, and you can delete it any time'}</p>
     <form class="wl-form"><input id="wlin" maxlength="80" autocomplete="off" enterkeyhint="send" placeholder="${AR() ? 'اكتب رسالتك…' : 'Write your message…'}"><button type="submit" class="xm-go">${AR() ? 'اكتب' : 'Post'}</button></form>
     <div class="wl-list"></div>`);
   box._w = w; renderWallList(box, w);
   box.querySelector('form').onsubmit = async e => { e.preventDefault(); const inp = box.querySelector('#wlin'), msg = cleanMsg(inp.value);
     if (msg === null) return mini(AR() ? '🙏 من غير روابط أو أرقام أو ألفاظ' : '🙏 No links, numbers or rude words please'); if (!msg) return;
-    const ok = await sbPost('game_wall', { vid, nick: myName().slice(0, 24), color: netColor, msg, wall: w.idx });
-    if (!ok) return mini(AR() ? '⏳ استنى شوية وجرب تاني' : '⏳ Wait a moment and try again');
-    inp.value = ''; Sfx.deliver(); w.msgs.unshift({ nick: myName(), color: netColor, msg, wall: w.idx, created_at: new Date().toISOString() }); w.paint(); renderWallList(box, w);
+    const key = newKey(); let id = null;
+    try { const r = await fetch(SB_REST + 'game_wall?select=id', { method: 'POST', headers: { ...sbHead(), Prefer: 'return=representation' }, body: JSON.stringify({ vid, nick: myName().slice(0, 24), color: netColor, msg, wall: w.idx, del_key: key }) });
+      if (r.ok){ const j = await r.json(); id = j[0] && j[0].id; } } catch (e) {}
+    if (!id) return mini(AR() ? '⏳ استنى شوية وجرب تاني' : '⏳ Wait a moment and try again');
+    wallKeys[id] = key; saveWallKeys();
+    inp.value = ''; Sfx.deliver(); w.msgs.unshift({ id, nick: myName(), color: netColor, msg, wall: w.idx, created_at: new Date().toISOString() }); w.paint(); renderWallList(box, w);
     if (netLive) netChan.send({ type: 'broadcast', event: 'wall', payload: { w: w.idx } }); mini(AR() ? '✅ رسالتك اتكتبت على الحيطة' : '✅ Your message is on the wall'); };
   setTimeout(() => box.querySelector('#wlin').focus(), 60);
 }

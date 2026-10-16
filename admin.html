@@ -123,6 +123,7 @@ header.top h1 img{width:30px;height:30px}
 }
 [hidden]{display:none!important}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.wall-list{display:grid;gap:8px;max-height:420px;overflow:auto}.wm{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;border:1px solid var(--line,#e5e7ef);border-radius:12px;padding:10px 12px}.wm p{margin:4px 0 0;overflow-wrap:anywhere}.wm small{color:var(--muted,#7a819a)}.wm .btn{flex:none}
 </style>
 </head>
 <body>
@@ -221,6 +222,16 @@ header.top h1 img{width:30px;height:30px}
   </div>
 
   <div class="card" style="margin-top:12px">
+    <h2>رسايل الحيطان</h2>
+    <p class="sub">كل رسالة بتختفي لوحدها بعد ٣ أسابيع. احذف أي رسالة من هنا، أو امسح القديم دفعة واحدة.</p>
+    <div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn" id="wallReload" type="button">↻ تحميل الرسايل</button>
+      <button class="btn" id="wallPurge" type="button">🧹 امسح الأقدم من ٣ أسابيع</button>
+    </div>
+    <div id="wallList" class="wall-list"></div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
     <h2>الجهاز ده</h2>
     <p class="sub">زياراتك إنت من الجهاز ده ممكن تبوّظ الأرقام — اقفلها هنا.</p>
     <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="notrack"> متحسبش زياراتي من الجهاز ده</label>
@@ -254,12 +265,29 @@ async function load(){
     if (r.status === 401) return showGate('كلمة السر غلط.');
     if (r.status === 503) return showGate('كلمة سر اللوحة لسه متضبطتش على السيرفر.\nمن Supabase ← Edge Functions ← Secrets ضيف GAME_ADMIN_PASS.');
     if (!r.ok) throw new Error(j.detail || j.error || r.status);
-    DATA = j; $('gate').hidden = true; $('app').hidden = false; render();
+    DATA = j; $('gate').hidden = true; const first = $('app').hidden; $('app').hidden = false; render(); if (first) loadWallMsgs();
   } catch (e) {
     if ($('app').hidden) showGate('مقدرتش أوصل للسيرفر: ' + e.message);
     else $('stamp').textContent = '⚠️ تعذّر التحديث: ' + e.message;
   } finally { $('refresh').disabled = false; }
 }
+/* ---- message walls ---- */
+const WFN = 'https://fxgljuswxeovwimfokml.supabase.co/functions/v1/game-wall';
+const WALLN = ['حيطة الزوار', 'حيطة المقهى', 'حيطة المعجبين'];
+async function wallCall(body){ const r = await fetch(WFN, { method: 'POST', headers: { 'content-type': 'application/json', apikey: KEY, 'x-admin-pass': PASS }, body: JSON.stringify(body) }); return r.json().catch(() => ({})); }
+async function loadWallMsgs(){
+  const el = $('wallList'); el.textContent = 'جاري التحميل…';
+  const j = await wallCall({ a: 'list' }).catch(() => ({}));
+  if (!j.rows){ el.textContent = 'تعذّر تحميل الرسايل.'; return; }
+  if (!j.rows.length){ el.textContent = 'مفيش رسايل على الحيطان دلوقتي.'; return; }
+  el.innerHTML = j.rows.map(m => { const age = Math.floor((Date.now() - Date.parse(m.created_at)) / 864e5);
+    return `<div class="wm"><div><b>${esc(m.nick)}</b> <small>· ${WALLN[m.wall] || 'حيطة'} · ${age ? 'من ' + fmt(age) + ' يوم' : 'النهارده'}${age >= 21 ? ' · منتهية' : ''}</small><p>${esc(m.msg)}</p></div><button class="btn" data-del="${m.id}" type="button">🗑 احذف</button></div>`; }).join('');
+  el.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm('تحذف الرسالة دي من الحيطة؟')) return; b.disabled = true;
+    const r = await wallCall({ a: 'adel', id: Number(b.dataset.del) }).catch(() => ({})); if (r.ok) b.closest('.wm').remove(); else { b.disabled = false; alert('تعذّر الحذف'); } });
+}
+$('wallReload').onclick = loadWallMsgs;
+$('wallPurge').onclick = async () => { if (!confirm('تمسح كل الرسايل الأقدم من ٣ أسابيع؟')) return; const r = await wallCall({ a: 'purge', days: 21 }).catch(() => ({})); if (!r.ok) alert('تعذّر المسح'); loadWallMsgs(); };
+
 function showGate(msg){ $('app').hidden = true; $('gate').hidden = false; $('gateErr').textContent = msg || ''; clearInterval(timer); }
 $('gateForm').onsubmit = e => { e.preventDefault(); clearInterval(timer); PASS = $('pass').value.trim(); try { ($('remember').checked ? localStorage : sessionStorage).setItem('pm-admin-pass', PASS); } catch (er) {} $('gateErr').textContent = '…'; load().then(() => { timer = setInterval(load, 60000); }); };
 $('logout').onclick = () => { try { localStorage.removeItem('pm-admin-pass'); sessionStorage.removeItem('pm-admin-pass'); } catch (e) {} PASS = ''; showGate(''); };

@@ -284,11 +284,11 @@ function sitDown(seat, where){
 }
 function standUp(){ if (!sitting) return; const was = sitting; sitting = null;
   if (was.back){ if (was.where === 'o' && typeof oPos !== 'undefined'){ oPos.copy(was.back); oYaw = was.yaw; } else if (was.where === 'b'){ iPos.copy(was.back); iYaw = was.yaw; } }
-  rig.position.y = 0; const b = $('sitbubble'); if (b) b.hidden = true; if (proc.legL){ proc.legL.rotation.x = proc.legR.rotation.x = 0; } }
+  rig.position.y = 0; const b = $('sitbubble'); if (b) b.hidden = true; if (proc.legL){ proc.legL.rotation.x = proc.legR.rotation.x = 0; if (proc.knL) proc.knL.rotation.x = proc.knR.rotation.x = 0; } }
 function applySitPose(){
   const legs = findLegs();
   if (legs){ legs.LeftUpLeg.rotateX(-1.45); legs.RightUpLeg.rotateX(-1.45); legs.LeftLeg.rotateX(1.45); legs.RightLeg.rotateX(1.45); }
-  else if (proc.legL){ proc.legL.rotation.x = proc.legR.rotation.x = -1.45; }
+  else if (proc.legL){ proc.legL.rotation.x = proc.legR.rotation.x = -1.45; if (proc.knL){ proc.knL.rotation.x = proc.knR.rotation.x = 1.4; proc.armL.rotation.x = proc.armR.rotation.x = -0.35; } }
   rig.position.y = -0.42 + sitting.h * 0.0;   // hips drop onto the seat
 }
 function sitBubbleEl(){
@@ -349,8 +349,8 @@ function interiorFrame(dt, now){
   if (sitting){ player.position.copy(INT_OFF).add(new THREE.Vector3(sitting.x, 0, sitting.z)); player.quaternion.setFromEuler(new THREE.Euler(0, sitting.yaw, 0)); }
   else { player.position.copy(INT_OFF).add(new THREE.Vector3(iPos.x, 0, iPos.y)); player.quaternion.setFromEuler(new THREE.Euler(0, iYaw, 0)); }
   shadow.position.copy(player.position).add(new THREE.Vector3(0, 0.07, 0)); shadow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0)); shadow.scale.setScalar(1);
-  if (mixer){ walkAction.timeScale = moving ? 1.2 : 0; if (!moving){ let d = idleTime - walkAction.time; d -= Math.round(d/clipDur)*clipDur; walkAction.time += d * (1 - Math.exp(-10*dt)); } mixer.update(dt); }
-  rig.position.y = moving ? 0 : Math.sin(now * 0.0022) * 0.012;
+  if (mixer){ walkAction.timeScale = moving ? 1.2 : 0; if (!moving){ let d = idleTime - walkAction.time; d -= Math.round(d/clipDur)*clipDur; walkAction.time += d * (1 - Math.exp(-10*dt)); } mixer.update(dt); rig.position.y = moving ? 0 : Math.sin(now * 0.0022) * 0.012; }
+  else if (!sitting) astroPose(moving, moving ? 3.2 : 0, dt, now, false);
   if (sitting) applySitPose();
   const target = player.position.clone().add(new THREE.Vector3(0, 0.8, 0));
   camera.position.lerp(target.clone().add(new THREE.Vector3(0.8, 6.2, 6.8)), 1 - Math.exp(-4 * dt)); camera.up.set(0, 1, 0); camera.lookAt(target);
