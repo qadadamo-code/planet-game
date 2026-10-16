@@ -343,14 +343,14 @@ function pushOut(p, rad = 0.28){
 }
 
 function enterOffice(){
-  if (!officeBuilt) buildOffice();
+  enterStamp = performance.now(); if (!officeBuilt) buildOffice();
   if (riding) dismount();
   inOffice = true; oPos.set(18.2, 12.0); oYaw = -Math.PI/2; oRoom = null; oWelcomed.clear();
   $('compass').hidden = true; clouds.visible = false; nightStars.visible = false; Sfx.open();
   camera.position.copy(OFF).add(new THREE.Vector3(14, 14, 18));
 }
 function exitOffice(){
-  inOffice = false; $('compass').hidden = false; clouds.visible = true; applyDayNight(); spawn(); Sfx.close(); mini(lang === 'ar' ? '🌍 رجعت للكوكب' : '🌍 Back on the planet');
+  inOffice = false; $('compass').hidden = false; clouds.visible = true; applyDayNight(); spawn(); besideMyCar(pois[0].dir, pois[0].r + 30); Sfx.close(); mini(lang === 'ar' ? '🌍 رجعت للكوكب' : '🌍 Back on the planet');
 }
 
 const _wish = new THREE.Vector3(), _cf = new THREE.Vector3(-0.42, 0, -0.91).normalize(), _cr = new THREE.Vector3().crossVectors(_cf, new THREE.Vector3(0, 1, 0)).normalize();

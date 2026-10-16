@@ -82,9 +82,9 @@ function onPeerState(p){
   peer.bld = p.w === 'b' ? p.b : null;
   if (p.w === 'b' && p.o && typeof INT_OFF !== 'undefined'){ peer.tPos.copy(INT_OFF).add(new THREE.Vector3(p.o[0], 0, p.o[1])); peer.tQuat.setFromEuler(new THREE.Euler(0, p.o[2], 0)); }
   if (!peer.g.visible && p.w !== 's'){ peer.pos.copy(peer.tPos); peer.quat.copy(peer.tQuat); }
-  const riding = !!p.r;
+  const riding = !!p.r; peer.rk = p.r || 0;
   if (riding !== peer.riding){ peer.riding = riding;
-    if (riding){ peer.car = p.r === 2 ? makeShip() : makeCar(peer.color, 0xF4F7FC); peer.g.add(peer.car); peer.body.visible = false; peer.tag.position.y = 2.9; }
+    if (riding){ peer.car = p.r === 2 ? makeShip() : makeCar(peer.color, 0xF4F7FC); peer.g.add(peer.car); peer.body.visible = p.r === 2; peer.tag.position.y = 2.9; }
     else { if (peer.car) peer.g.remove(peer.car); peer.car = null; peer.body.visible = true; peer.tag.position.y = 2.55; } }
   if (peer.car && peer.car.userData.car) setCarStyle(peer.car, !!p.f);
 }
@@ -123,9 +123,11 @@ function netFrame(now){
     if (!peer.g.visible) continue;
     const before = peer.pos.clone();
     // a passenger rides in the driver's car: sit them beside the driver
-    const drv = peer.ps === netId ? { pos: player.position, quat: player.quaternion } : peer.ps && peers.get(peer.ps);
-    if (drv){ peer.pos.copy(drv.pos); peer.quat.copy(drv.quat); peer.body.position.set(0.38, 0.2, -0.15); peer.body.scale.setScalar(0.95); }
-    else { const k = 1 - Math.exp(-10 * dt); peer.pos.lerp(peer.tPos, k); peer.quat.slerp(peer.tQuat, k); peer.body.position.set(0, 0, 0); peer.body.scale.setScalar(1.15); }
+    const drv = peer.ps === netId ? { pos: player.position, quat: player.quaternion, rk: riding && car && car.userData.ship ? 2 : 1 } : peer.ps && peers.get(peer.ps);
+    if (drv){ peer.pos.copy(drv.pos); peer.quat.copy(drv.quat);
+      if (drv.rk === 2) peer.body.position.set(0, 0.66, -0.55); else peer.body.position.set(0.38, 0.2, -0.15); peer.body.scale.setScalar(0.95); }
+    else { const k = 1 - Math.exp(-10 * dt); peer.pos.lerp(peer.tPos, k); peer.quat.slerp(peer.tQuat, k);
+      if (peer.rk === 2){ peer.body.position.set(0, 0.62, 0.15); peer.body.scale.setScalar(0.95); } else { peer.body.position.set(0, 0, 0); peer.body.scale.setScalar(1.15); } }
     peer.g.position.copy(peer.pos); peer.g.quaternion.copy(peer.quat);
     peer.tag.visible = peer.id !== passengerOf && camera.position.distanceTo(peer.pos) > 5;   // a name tag right in front of the lens fills the screen
     const moved = before.distanceTo(peer.pos);
@@ -173,7 +175,7 @@ netStart();
 
 
 /* ---------- riding together: hop into another visitor's car ---------- */
-let passengerOf = null;
+let passengerOf = null; const _pd = new THREE.Vector3();
 function sharedRideFrame(meWorld){
   const btn = netBtn('netride');
   if (passengerOf){
@@ -181,20 +183,29 @@ function sharedRideFrame(meWorld){
     if (!d || !d.riding || d.world !== 'p' || meWorld !== 'p'){ leaveRide(); return; }
     // follow the driver: the game moves the player from pDir/pFwd every frame
     pDir.copy(d.pos).normalize(); const f = new THREE.Vector3(0, 0, 1).applyQuaternion(d.quat); pFwd.copy(f).addScaledVector(pDir, -f.dot(pDir)).normalize();
-    rig.visible = false;
-    btn.hidden = state !== 'play'; btn.textContent = lang === 'ar' ? '🚗 انزل من العربية' : '🚗 Get out'; btn.onclick = leaveRide;
+    // in the shuttle I sit in the back seat and rise with the pilot; in a car I'm tucked inside
+    const ship = d.rk === 2, ground = R + Math.max(heightAt(pDir), SEA + 0.12);
+    flyY = ship ? Math.max(0, d.pos.length() - ground) : 0;
+    rig.visible = ship;
+    if (ship){ rig.position.set(0, 0.66, -0.55); if (proc.legL){ proc.legL.rotation.x = proc.legR.rotation.x = -1.45; proc.knL.rotation.x = proc.knR.rotation.x = 1.4; proc.armL.rotation.x = proc.armR.rotation.x = -0.5; } }
+    btn.hidden = state !== 'play'; btn.textContent = d.rk === 2 ? (lang === 'ar' ? '🪂 انزل من الطيارة' : '🪂 Jump out') : (lang === 'ar' ? '🚗 انزل من العربية' : '🚗 Get out'); btn.onclick = leaveRide;
     return;
   }
   // offer a seat when I'm standing next to someone who is driving
   let near = null;
-  if (meWorld === 'p' && !riding && state === 'play') for (const p of peers.values()) if (p.riding && p.world === 'p' && !p.ps && p.pos.distanceTo(player.position) < 4.2){ near = p; break; }
+  // distance along the ground, so a shuttle hovering overhead still counts as "right here"
+  if (meWorld === 'p' && !riding && state === 'play') for (const p of peers.values()){
+    if (!p.riding || p.world !== 'p' || p.ps || _pd.copy(p.pos).normalize().angleTo(pDir) * R > (p.rk === 2 ? 6 : 4.2)) continue;
+    const taken = p.rk === 2 && [...peers.values()].some(o => o.ps === p.id);   // the shuttle has two seats: pilot + one
+    if (taken) continue; near = p; break; }
   btn.hidden = !near;
-  if (near){ btn.textContent = (lang === 'ar' ? '🚗 اركب مع ' : '🚗 Ride with ') + t(visitorName(near.num, near.nick)); btn.onclick = () => joinRide(near.id); }
+  if (near){ btn.textContent = (near.rk === 2 ? (lang === 'ar' ? '🛸 اطلع الطيارة مع ' : '🛸 Fly with ') : (lang === 'ar' ? '🚗 اركب مع ' : '🚗 Ride with ')) + t(visitorName(near.num, near.nick)); btn.onclick = () => joinRide(near.id); }
 }
 function joinRide(id){ const d = peers.get(id); if (!d) return; passengerOf = id; document.body.classList.add('passenger'); Sfx.open(); netLastKey = '';
   mini(lang === 'ar' ? `🚗 راكب مع ${t(visitorName(d.num, d.nick))}` : `🚗 Riding with ${t(visitorName(d.num, d.nick))}`);
   netChan && netChan.send({ type: 'broadcast', event: 'chat', payload: { i: netId, n: netNum, c: netColor, k: myNick(), sys: 'ride', to: id } }); }
-function leaveRide(){ if (!passengerOf) return; passengerOf = null; document.body.classList.remove('passenger'); rig.visible = true; netLastKey = '';
+function leaveRide(){ if (!passengerOf) return; passengerOf = null; document.body.classList.remove('passenger'); rig.visible = true; rig.position.set(0, 0, 0); netLastKey = '';
+  if (flyY > 0.8){ jy = flyY; vy = 0; grounded = false; } flyY = 0;   // out of a flying shuttle: drop to the ground
   const side = new THREE.Vector3().crossVectors(pDir, pFwd).normalize(); pDir.addScaledVector(side, 2.2 / R).normalize(); Sfx.close(); netBtn('netride').hidden = true; }
 
 /* ---------- flying together: anyone who launches the rocket invites everyone on the planet ---------- */

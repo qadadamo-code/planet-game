@@ -26,8 +26,9 @@ function prepDoors(){
   doorsReady = true;
 }
 function doorCheck(){
-  if (!doorsReady || state !== 'play' || riding || inBuilding || (typeof inOffice !== 'undefined' && inOffice) || (typeof inSpace !== 'undefined' && inSpace)) return;
+  if (!doorsReady || state !== 'play' || (riding && (!car || car.userData.ship)) || inBuilding || (typeof inOffice !== 'undefined' && inOffice) || (typeof inSpace !== 'undefined' && inSpace)) return;
   if (typeof passengerOf !== 'undefined' && passengerOf) return;
+  if (typeof onBus !== 'undefined' && onBus) return;
   for (const p of pois){ if (!canEnter(p)) continue;
     const d = pDir.angleTo(p.dir) * R;
     if (lastExit === p){ if (d > p.r + 3.2) lastExit = null; continue; }
@@ -35,6 +36,7 @@ function doorCheck(){
     const off = pDir.clone().sub(p.dir); off.addScaledVector(p.dir, -off.dot(p.dir)).normalize();
     if (off.dot(p.doorTan) < Math.cos(0.75)) continue;                    // only the front, where the door is
     if (pFwd.dot(p.doorTan) > -0.2) continue;                             // walking towards the building, not away
+    if (riding) dismount();   // drive right up to the door: the car waits outside where you left it
     Sfx.open(); if (p.id === 'hq') return enterOffice(); return enterBuilding(p);
   }
 }
@@ -262,7 +264,7 @@ function hostTalk(){
 
 /* ---------- entering and leaving ---------- */
 function enterBuilding(p){
-  buildRoom(p); inBuilding = p; iPos.set(0, iD/2 - 0.9); iYaw = Math.PI;
+  enterStamp = performance.now(); buildRoom(p); inBuilding = p; iPos.set(0, iD/2 - 0.9); iYaw = Math.PI;
   $('compass').hidden = true; clouds.visible = false; nightStars.visible = false; releaseAll();
   camera.position.copy(INT_OFF).add(new THREE.Vector3(0, 9, 10));
   mini(lang === 'ar' ? `🚪 دخلت ${t(p.name)}` : `🚪 You're inside ${t(p.name)}`);
@@ -271,6 +273,7 @@ function exitBuilding(){
   const p = inBuilding; standUp(); inBuilding = null; clearRoom(); iHost = null;
   $('compass').hidden = false; clouds.visible = true; applyDayNight();
   pDir.copy(p.dir).addScaledVector(p.doorTan, (p.r + 2.4) / R).normalize(); pFwd.copy(p.doorTan); camFwd.copy(p.doorTan);
+  besideMyCar(p.dir, p.r + 16);
   lastExit = p; Sfx.close(); mini(lang === 'ar' ? '🌍 رجعت للكوكب' : '🌍 Back on the planet');
 }
 
