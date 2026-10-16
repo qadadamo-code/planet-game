@@ -100,7 +100,7 @@ function myState(){
 function netTick(now){
   if (!netLive) return;
   const s = myState(); if (!s) return;
-  const key = JSON.stringify([s.w, s.p, s.q, s.o, s.r, s.k, s.ps, s.sw, s.f, s.c, s.a, s.b]);
+  const key = JSON.stringify([s.w, s.p, s.q, s.o, s.r, s.k, s.ps, s.sw, s.f, s.c, s.a, s.b, s.bu]);
   const due = key !== netLastKey ? NET.sendMs : NET.idleMs;
   if (now - netLastSend < due) return;
   netLastSend = now; netLastKey = key;
@@ -127,12 +127,14 @@ function netFrame(now){
     if (drv){ peer.pos.copy(drv.pos); peer.quat.copy(drv.quat);
       if (drv.rk === 2) peer.body.position.set(0, 0.66, -0.55); else peer.body.position.set(0.38, 0.2, -0.15); peer.body.scale.setScalar(0.95); }
     else { const k = 1 - Math.exp(-10 * dt); peer.pos.lerp(peer.tPos, k); peer.quat.slerp(peer.tQuat, k);
-      if (peer.rk === 2){ peer.body.position.set(0, 0.62, 0.15); peer.body.scale.setScalar(0.95); } else { peer.body.position.set(0, 0, 0); peer.body.scale.setScalar(1.15); } }
+      if (peer.bu){ peer.body.position.set(peer.bu.x, 0.75, peer.bu.z); peer.body.scale.setScalar(0.9); }
+      else if (peer.rk === 2){ peer.body.position.set(0, 0.62, 0.15); peer.body.scale.setScalar(0.95); } else { peer.body.position.set(0, 0, 0); peer.body.scale.setScalar(1.15); } }
     peer.g.position.copy(peer.pos); peer.g.quaternion.copy(peer.quat);
     peer.tag.visible = peer.id !== passengerOf && camera.position.distanceTo(peer.pos) > 5;   // a name tag right in front of the lens fills the screen
     const moved = before.distanceTo(peer.pos);
     if (moved > 0.002) peer.walkT += moved * 3.2; else peer.walkT *= 0.85;
-    if (peer.body.visible) animatePerson(peer.body, moved > 0.002 ? peer.walkT : 0, false, now / 1000);
+    if (peer.bu){ const u = peer.body.userData; animatePerson(peer.body, 0, false, now / 1000); u.legL.rotation.x = u.legR.rotation.x = -1.45; if (u.knL){ u.knL.rotation.x = u.knR.rotation.x = 1.4; } }
+    else if (peer.body.visible) animatePerson(peer.body, moved > 0.002 ? peer.walkT : 0, false, now / 1000);
     if (peer.car && moved > 0.002) peer.car.traverse(o => { if (o.userData.wheel) o.rotation.x += moved * 3; });
     if (peer.bubble) peer.bubble.visible = performance.now() < peer.bubbleUntil;
   }

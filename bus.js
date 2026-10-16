@@ -4,7 +4,7 @@
    Hop on anywhere you meet it, ride past the studios and clients with a little introduction at each
    stop, and hop off wherever you like. */
 let onBus = false, busReady = false, bus = null, busTk = null, busOffNext = false, busLast = -1;
-const BUS = { speed: 9, dwell: 9, lane: -0.6, hops: [], total: 0 };
+const BUS = { speed: 9, dwell: 9, lane: -0.6, hops: [], total: 0, signs: [] };
 
 function busTex(){
   const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128; const x = cv.getContext('2d');
@@ -13,15 +13,20 @@ function busTex(){
   x.fillText('PLANET TOUR', 256, 48); x.fillStyle = '#F4F7FC'; x.font = '700 34px IBM Plex Sans Arabic, sans-serif'; x.direction = 'rtl'; x.fillText('جولة حوالين الكوكب', 256, 96);
   const tx = new THREE.CanvasTexture(cv); tx.anisotropy = 4; return tx;
 }
+const BUS_GLASS = new THREE.MeshBasicMaterial({ color: 0xBFE3F2, transparent: true, opacity: 0.38, depthWrite: false });
 function makeBus(){
   const g = new THREE.Group(); g.userData.dyn = true;
   const Y = 0xF2C94C, B = 0x2E6BA9, W = 0xF4F7FC, D = 0x12153A;
   const add = (geo, col, x, y, z, basicMat) => { const m = new THREE.Mesh(geo, basicMat ? basic(col) : toon(col)); m.position.set(x, y, z); m.castShadow = SHADOWS; g.add(m); return m; };
-  add(RB(2.0, 1.55, 4.6), Y, 0, 1.12, 0);                       // the body
+  // the body is open above the waist (pillars between the windows), so you can see who's riding
+  add(RB(2.0, 0.78, 4.6), Y, 0, 0.73, 0); add(RB(2.0, 0.24, 4.6), Y, 0, 1.79, 0);
+  for (const z of [-2.15, -1.26, -0.48, 0.3, 1.08, 1.86]) [-1, 1].forEach(sd => add(new THREE.BoxGeometry(0.1, 0.62, z === -2.15 || z === 1.86 ? 0.5 : 0.16), Y, sd * 0.95, 1.4, z));
+  add(new THREE.BoxGeometry(1.9, 0.62, 0.1), Y, 0, 1.4, 2.26).visible = false; add(new THREE.BoxGeometry(1.9, 0.05, 4.4), 0x8A6A4A, 0, 1.11, 0);
+  for (let i = 0; i < 4; i++) [-0.48, 0.48].forEach(x => { add(new THREE.BoxGeometry(0.62, 0.12, 0.5), 0x2E6BA9, x, 1.2, 1.0 - i * 0.75); add(new THREE.BoxGeometry(0.62, 0.45, 0.1), 0x2E6BA9, x, 1.45, 0.78 - i * 0.75); });
   add(RB(2.04, 0.34, 4.64), B, 0, 0.56, 0);                     // blue skirt
   add(RB(1.84, 0.3, 4.3), W, 0, 1.98, 0);                       // white roof
   for (let i = 0; i < 5; i++){ const z = -1.65 + i * 0.78;     // side windows
-    [-1, 1].forEach(sd => add(new THREE.BoxGeometry(0.06, 0.52, 0.62), 0xBFE3F2, sd * 1.01, 1.4, z, true)); }
+    [-1, 1].forEach(sd => { const w = add(new THREE.BoxGeometry(0.06, 0.52, 0.62), 0xBFE3F2, sd * 1.01, 1.4, z, true); w.material = BUS_GLASS; }); }
   add(new THREE.BoxGeometry(1.7, 0.66, 0.06), 0xBFE3F2, 0, 1.38, 2.31, true);   // windscreen
   add(new THREE.BoxGeometry(1.5, 0.5, 0.06), 0xBFE3F2, 0, 1.45, -2.31, true);   // back window
   [-0.7, 0.7].forEach(x => { add(new THREE.SphereGeometry(0.12, 12, 8), 0xFFF3C4, x, 0.72, 2.3, true); add(new THREE.SphereGeometry(0.1, 10, 6), 0xE76F51, x, 0.72, -2.3, true); });
@@ -83,7 +88,7 @@ function buildBus(){
   // a stop sign on the kerb where the bus pulls up in front of every place
   for (const h of BUS.hops){ const l = h.legs[h.legs.length - 1]; if (!l) continue; const s0 = sB(l);
     for (const lane of [-2.5, -3.2]){ const d = edgePoint(l.e, s0, lane * l.dir); if (!walkable(d) || !clearOf(d, 0, 0, 0.6)) continue;
-      const sg = busStopSign(); placeAt(sg, d); faceToward(sg, edgePoint(l.e, s0 + l.dir, lane * l.dir).multiplyScalar(R)); planet.add(sg); cullList.push(sg); addObstacle(d, 0.3); break; } }
+      const sg = busStopSign(); placeAt(sg, d); faceToward(sg, edgePoint(l.e, s0 + l.dir, lane * l.dir).multiplyScalar(R)); planet.add(sg); cullList.push(sg); addObstacle(d, 0.3); BUS.signs.push({ d: d.clone(), k: h.to, sg }); break; } }
   busReady = true;
 }
 /* where the bus is at a given clock time: { d, fwd, stop (index or -1), hop, u } */
@@ -124,10 +129,10 @@ function busFrame(){
   // arriving at a stop: announce it to riders
   if (b.stop >= 0 && b.stop !== busLast){ busLast = b.stop; if (onBus){ const p = BUS.stops[b.stop];
       toast((lang === 'ar' ? '🚏 محطة: ' : '🚏 Stop: ') + t(p.name), p.lines && p.lines[0] ? t(p.lines[0]).slice(0, 120) : '');
-      Sfx.open(); if (busOffNext){ busOffNext = false; setTimeout(leaveBus, 600); } } }
+      Sfx.open(); if (typeof busArrive === 'function') busArrive(p, b.stop); if (busOffNext){ busOffNext = false; setTimeout(leaveBus, 600); } } }
   if (b.stop < 0) busLast = -1;
   if (onBus){
-    pDir.copy(up); pFwd.copy(fwd); rig.visible = false;
+    pDir.copy(up); pFwd.copy(fwd); if (typeof busSeatMe === 'function') busSeatMe(); else rig.visible = false;
     if (state !== 'play' && state !== 'talk') leaveBus();
   }
   paintBusBar(b);
