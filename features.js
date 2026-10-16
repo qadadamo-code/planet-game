@@ -409,7 +409,8 @@ function featuresBoot(){
   setInterval(loadWalls, 90000);
   const tt = document.getElementById('title');
   if (tt && !document.getElementById('lblink')){ const b = document.createElement('button'); b.type = 'button'; b.id = 'lblink'; b.className = 'pflink';
-    const paint = () => b.textContent = AR() ? '🏆 لوحة الأبطال' : '🏆 Leaderboard'; paint(); langHooks.push(paint); b.onclick = () => openBoard(); const pf = document.getElementById('pflink'); pf ? pf.after(b) : tt.appendChild(b); }
+    const paint = () => b.textContent = AR() ? '🏆 لوحة الأبطال' : '🏆 Leaderboard'; paint(); langHooks.push(paint); b.onclick = () => openBoard(); const pf = document.getElementById('pflink');
+    if (pf){ const w = document.createElement('div'); w.className = 'titlelinks'; pf.replaceWith(w); w.append(pf, b); } else tt.appendChild(b); }
 }
 featuresBoot();
 let ftPrev = performance.now(), liveT = 0;

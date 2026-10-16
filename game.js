@@ -161,7 +161,7 @@ function poiDist(d){ let best = -2, i0 = -1; for (let i=0;i<N_POI;i++){ const v 
 function rawN(x,y,z){ return Math.sin(x*.19+1.3)*Math.sin(y*.17+.2)*Math.sin(z*.21+2.1) + .5*Math.sin(x*.41+z*.37+y*.13+.7) + .28*Math.sin(y*.83+x*.61+1.1)*Math.sin(z*.77+.4); }
 function terrainInfo(d){
   const [pd] = poiDist(d), rd = roadDist(d);
-  const m = smooth01(Math.min(pd - 8, rd - 2.4) / 7);
+  const m = smooth01(Math.min(pd - 11, rd - 2.4) / 8);   // a wider flat apron round every place: no lakes at the door
   const n = rawN(d.x*R, d.y*R, d.z*R) * m;
   let h = 0;
   if (n > 0.82) h = -1.1; else if (n > 0.6) h = -(n-0.6)/0.22*1.1;
@@ -334,14 +334,70 @@ function lamp(){ const g = new THREE.Group(); const p = mesh(new THREE.CylinderG
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.11,10,8), basic(0xFFE7A0)); bulb.position.set(0.45,2.4,0); g.add(bulb);
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xFFD98A, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.3 }));
   halo.scale.set(1.4,1.4,1); halo.position.copy(bulb.position); g.add(halo); return g; }
+/* storybook nature, after the reference art: trees with thick twisting trunks that taper and flare into
+   roots, soft round canopies in layered greens, and moss hanging off the branches */
+function taperTube(curve, r0, r1, segs = 10, radial = 7){
+  const g = new THREE.TubeGeometry(curve, segs, 1, radial, false), P = g.attributes.position, c = V(), p = V();
+  for (let i = 0; i <= segs; i++){ curve.getPointAt(i / segs, c); const r = r0 + (r1 - r0) * (i / segs);
+    for (let k = 0; k <= radial; k++){ const vi = i * (radial + 1) + k; p.fromBufferAttribute(P, vi).sub(c).multiplyScalar(r).add(c); P.setXYZ(vi, p.x, p.y, p.z); } }
+  g.computeVertexNormals(); return g;
+}
+const LEAF = [0x4F8F4A, 0x5FA052, 0x6DAE58, 0x447F45], BARK = [0x7A5A43, 0x6B4E3A, 0x86664B];
+function canopyBlob(g, x, y, z, r, col, sq = 0.78){ const b = mesh(new THREE.SphereGeometry(r, 14, 10), col); b.position.set(x, y, z); b.scale.set(1, sq, 1); g.add(b); return b; }
+function mossStrands(g, x, y, z, spread, n){ for (let i = 0; i < n; i++){ const L = 0.5 + rnd() * 1.1, m = mesh(new THREE.CylinderGeometry(0.025, 0.012, L, 5), rnd() < 0.5 ? 0x7C9C3E : 0x6A8C38);
+  m.position.set(x + (rnd() - 0.5) * spread, y - L / 2, z + (rnd() - 0.5) * spread); g.add(m); } }
 function tree(k){
-  const g = new THREE.Group(), h = 1.6 + rnd()*1.6;
-  const tr = mesh(new THREE.CylinderGeometry(0.11,0.17,1.0,6), 0x8A6347); tr.position.y = 0.5; g.add(tr);
-  if (k === 0){ [0,1,2].forEach(i => { const c = mesh(new THREE.ConeGeometry(0.85-i*0.2, h*0.55, 8), [0x5C9E78,0x68AC82,0x78BA8C][i]); c.position.y = 0.9 + i*h*0.28; g.add(c); }); }
-  else if (k === 1){ const cs = [0x74B47E,0x88C38C,0x67A873]; [[0,1.35,0,0.78],[0.42,1.15,0.15,0.52],[-0.38,1.2,-0.1,0.55],[0.05,1.8,-0.05,0.5]].forEach(([x,y,z,r],i) => { const b = mesh(new THREE.IcosahedronGeometry(r,0), cs[i%3]); b.position.set(x, y*h/1.9+0.25, z); g.add(b); }); }
-  else { const b = mesh(new THREE.IcosahedronGeometry(0.75,0), 0xE9A0B8); b.position.y = 1.5; b.scale.y = 1.1; g.add(b); const b2 = mesh(new THREE.IcosahedronGeometry(0.5,0), 0xF2B8CB); b2.position.set(0.35,1.9,0.1); g.add(b2); }
+  const g = new THREE.Group(), h = 2.2 + rnd() * 1.8;
+  if (k === 0){ // a soft conifer
+    const tr = mesh(new THREE.CylinderGeometry(0.1, 0.18, 1.0, 8), BARK[1]); tr.position.y = 0.5; g.add(tr);
+    [0, 1, 2, 3].forEach(i => { const c = mesh(new THREE.ConeGeometry(1.05 - i * 0.22, h * 0.42, 12), [0x3E7A55, 0x478760, 0x51936A, 0x5C9E72][i]); c.position.y = 1.0 + i * h * 0.22; g.add(c); });
+    return g; }
+  if (k === 2){ // a blossom tree
+    const cur = new THREE.CatmullRomCurve3([V(0, 0, 0), V(0.15, 0.8, 0.05), V(-0.1, 1.5, 0)]); g.add(mesh(taperTube(cur, 0.17, 0.08), BARK[0]));
+    [[0, 1.9, 0, 0.8], [0.45, 1.7, 0.2, 0.55], [-0.4, 1.75, -0.15, 0.58], [0.05, 2.3, 0, 0.5]].forEach(([x, y, z, r], i) => canopyBlob(g, x, y, z, r, i % 2 ? 0xF2B8CB : 0xE9A0B8, 0.85));
+    return g; }
+  // the storybook broadleaf: a leaning, twisting trunk, root flares, big soft canopy, hanging moss
+  const lean = (rnd() - 0.5) * 0.9, top = V(lean, h * 0.62, (rnd() - 0.5) * 0.5);
+  const cur = new THREE.CatmullRomCurve3([V(0, -0.1, 0), V(-lean * 0.4, h * 0.22, 0.08), V(lean * 0.3, h * 0.42, -0.06), top]);
+  g.add(mesh(taperTube(cur, 0.26, 0.11, 12, 8), BARK[(rnd() * 3) | 0]));
+  for (let r = 0; r < 4; r++){ const a = r / 4 * Math.PI * 2 + rnd(); const rc = new THREE.CatmullRomCurve3([V(0, 0.45, 0), V(Math.cos(a) * 0.3, 0.12, Math.sin(a) * 0.3), V(Math.cos(a) * 0.62, -0.05, Math.sin(a) * 0.62)]);
+    g.add(mesh(taperTube(rc, 0.12, 0.04, 5, 6), BARK[0])); }
+  // a side branch
+  { const a = rnd() * 6, bc = new THREE.CatmullRomCurve3([top.clone().multiplyScalar(0.7), V(Math.cos(a) * 0.7, h * 0.6, Math.sin(a) * 0.7), V(Math.cos(a) * 1.1, h * 0.72, Math.sin(a) * 1.1)]);
+    g.add(mesh(taperTube(bc, 0.08, 0.04, 5, 6), BARK[1])); canopyBlob(g, Math.cos(a) * 1.15, h * 0.78, Math.sin(a) * 1.15, 0.62, LEAF[2]); }
+  const cy = h * 0.72 + 0.4, col = LEAF[(rnd() * 4) | 0];
+  canopyBlob(g, top.x, cy, top.z, 1.05, col);
+  [[0.7, -0.1, 0.3, 0.75], [-0.65, -0.05, -0.25, 0.72], [0.15, 0.45, -0.1, 0.7], [-0.2, -0.15, 0.6, 0.6]].forEach(([x, y, z, r], i) => canopyBlob(g, top.x + x, cy + y, top.z + z, r, i % 2 ? LEAF[2] : col));
+  mossStrands(g, top.x, cy - 0.55, top.z, 1.5, 4 + ((rnd() * 4) | 0));
   return g;
 }
+/* a giant tree that arches right over a road, like the gateway in the reference */
+function archTree(span, hgt){
+  const g = new THREE.Group();
+  const cur = new THREE.CatmullRomCurve3([V(-span, -0.2, 0), V(-span * 0.85, hgt * 0.55, 0.3), V(-span * 0.35, hgt, -0.2), V(span * 0.3, hgt * 1.02, 0.25), V(span * 0.85, hgt * 0.55, -0.3), V(span, -0.2, 0)]);
+  const tube = taperTube(cur, 0.75, 0.75, 40, 10), P = tube.attributes.position;   // thick at both feet, slimmer over the top
+  { const c = V(), p = V(); for (let i = 0; i <= 40; i++){ cur.getPointAt(i / 40, c); const f = 0.5 + 0.5 * Math.abs(i / 20 - 1) ** 1.6;
+      for (let k = 0; k <= 10; k++){ const vi = i * 11 + k; p.fromBufferAttribute(P, vi).sub(c).multiplyScalar(f).add(c); P.setXYZ(vi, p.x, p.y, p.z); } } tube.computeVertexNormals(); }
+  g.add(mesh(tube, 0x6E5440));
+  [-1, 1].forEach(sd => { for (let r = 0; r < 3; r++){ const a = r * 2.1 + sd; const rc = new THREE.CatmullRomCurve3([V(sd * span, 1.0, 0), V(sd * span + Math.cos(a) * 0.7, 0.3, Math.sin(a) * 0.7), V(sd * span + Math.cos(a) * 1.4, -0.1, Math.sin(a) * 1.4)]);
+    g.add(mesh(taperTube(rc, 0.32, 0.08, 6, 6), 0x6E5440)); } });
+  for (let i = 0; i < 7; i++){ const t = 0.22 + i / 6 * 0.56, pt = cur.getPointAt(t); canopyBlob(g, pt.x, pt.y + 0.7, pt.z + (rnd() - 0.5) * 0.8, 1.1 + rnd() * 0.6, LEAF[i % 4], 0.7);
+    mossStrands(g, pt.x, pt.y - 0.3, pt.z, 1.2, 3); }
+  return g;
+}
+/* weathered sandstone with a cap of moss */
+function rockGeo(r, seed){ let g = new THREE.IcosahedronGeometry(r, 1); g = g.toNonIndexed(); const P = g.attributes.position, p = V();
+  const key = q => `${q.x.toFixed(3)},${q.y.toFixed(3)},${q.z.toFixed(3)}`, off = {};
+  for (let i = 0; i < P.count; i++){ p.fromBufferAttribute(P, i); const kk = key(p); if (off[kk] === undefined) off[kk] = 0.78 + rnd() * 0.42; p.multiplyScalar(off[kk]); P.setXYZ(i, p.x, p.y, p.z); }
+  g.computeVertexNormals(); return g; }
+function rock(size, mossy = true){ const g = new THREE.Group(), geo = rockGeo(size); const r = mesh(geo, rnd() < 0.5 ? 0xD3A56E : 0xC4925C); r.scale.y = 0.72; r.position.y = size * 0.38; g.add(r);
+  if (mossy){ const m = mesh(geo.clone(), 0x7FA84A); m.scale.set(0.98, 0.3, 0.98); m.position.y = size * 0.66; g.add(m); } return g; }
+function rockPillar(hgt){ const g = new THREE.Group(); let y = 0, w = 1.6;
+  while (y < hgt){ const s = w * (0.8 + rnd() * 0.3); const r = mesh(rockGeo(s), [0xD9A96A, 0xC98F55, 0xE0B47A][(rnd() * 3) | 0]); r.scale.y = 0.62; r.position.set((rnd() - 0.5) * 0.4, y + s * 0.5, (rnd() - 0.5) * 0.4); g.add(r); y += s * 0.95; w *= 0.86; }
+  const cap = mesh(rockGeo(w * 1.3), 0x7FA84A); cap.scale.y = 0.35; cap.position.y = y + 0.1; g.add(cap); mossStrands(g, 0, y, 0, w * 1.6, 5); return g; }
+function crystals(){ const g = new THREE.Group(); const base = mesh(rockGeo(0.45), 0x8A7A6A); base.scale.y = 0.5; g.add(base);
+  for (let i = 0; i < 5; i++){ const c = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), basic(i % 2 ? 0x7FF0E0 : 0xA6F6EC)); c.scale.set(0.7, 2.4 + rnd() * 1.6, 0.7);
+    c.position.set((rnd() - 0.5) * 0.6, 0.45 + c.scale.y * 0.1, (rnd() - 0.5) * 0.6); c.rotation.set((rnd() - 0.5) * 0.6, rnd() * 3, (rnd() - 0.5) * 0.6); g.add(c); } return g; }
 function palm(){ const g = new THREE.Group(); for (let i=0;i<6;i++){ const s = mesh(new THREE.CylinderGeometry(0.13-i*0.01,0.15-i*0.01,0.5,6), 0x9B7650); s.position.set(i*0.05,0.25+i*0.48,0); s.rotation.z = -0.05*i; g.add(s); }
   for (let i=0;i<6;i++){ const l = mesh(new THREE.BoxGeometry(1.4,0.04,0.32), 0x4E9A55); l.position.set(0.3,3.0,0); l.rotation.set(0, i*Math.PI/3, -0.35); l.translateX(0.6); g.add(l); } return g; }
 
@@ -931,37 +987,67 @@ function boardLabel(w){ const c = document.createElement('canvas'); c.width = 51
 
 function buildNature(){
   const okLand = (d, poi = 9, road = 2.4) => { const s = terrainInfo(d); return s.h > SEA + 0.25 && s.n < 0.45 && s.pd > poi && s.rd > road ? s : null; };
-  // groves: trees gather in clusters and leave open meadows between them
-  const AREA = (R/30)**2, groves = Math.round((isTouch ? 10 : 14) * AREA);
-  for (let gI=0, tries=0; gI<groves && tries<800; tries++){
+  // groves: big storybook trees gather in clusters and leave open meadows between them
+  const AREA = (R/30)**2, groves = Math.round((isTouch ? 8 : 11) * AREA);
+  for (let gI=0, tries=0; gI<groves && tries<900; tries++){
     const c = randDir(); if (!okLand(c, 12, 4)) continue; gI++;
-    const n = 5 + (rnd()*7|0), hill = terrainInfo(c).h > 2.2;
-    for (let k=0;k<n;k++){ const d = c.clone().add(randDir().multiplyScalar(rnd()*5.5/R)).normalize(); if (!okLand(d) || !clearOf(d, 9, 2.4, 0.7)) continue;
-      const kind = hill ? 0 : (rnd() < 0.06 ? 2 : (rnd() < 0.35 ? 0 : 1));
-      const tr = tree(kind); placeAt(tr, d, rnd()*6, -0.05); tr.scale.setScalar(0.9 + rnd()*0.55); bake(tr); addObstacle(d, 0.45); }
+    const n = 4 + (rnd()*6|0), hill = terrainInfo(c).h > 2.2;
+    for (let k=0;k<n;k++){ const d = c.clone().add(randDir().multiplyScalar(rnd()*6/R)).normalize(); if (!okLand(d) || !clearOf(d, 9, 2.6, 1.1)) continue;
+      const kind = hill ? 0 : (rnd() < 0.07 ? 2 : (rnd() < 0.25 ? 0 : 1)), sc = kind === 1 ? 1.15 + rnd()*0.7 : 0.95 + rnd()*0.5;
+      const tr = tree(kind); placeAt(tr, d, rnd()*6, -0.08); tr.scale.setScalar(sc); bake(tr); addObstacle(d, 0.4 * sc); }
   }
-  for (let i=0, p=0; i<3000 && p<Math.round(26*AREA); i++){ const d = randDir(); if (!okLand(d, 10, 3) || !clearOf(d, 10, 3, 3)) continue;
-    const tr = tree(rnd() < 0.5 ? 1 : 0); placeAt(tr, d, rnd()*6, -0.05); tr.scale.setScalar(1 + rnd()*0.4); bake(tr); addObstacle(d, 0.45); p++; }
+  for (let i=0, p=0; i<3000 && p<Math.round(18*AREA); i++){ const d = randDir(); if (!okLand(d, 10, 3) || !clearOf(d, 10, 3, 3)) continue;
+    const sc = 1.1 + rnd()*0.6, tr = tree(rnd() < 0.7 ? 1 : 0); placeAt(tr, d, rnd()*6, -0.08); tr.scale.setScalar(sc); bake(tr); addObstacle(d, 0.4 * sc); p++; }
+  // giant trees arching over a few of the longer roads — gateways into the wild parts of the planet
+  { const order = EDGES.map((e, i) => [i, poiDirs[e[0]].angleTo(poiDirs[e[1]])]).sort((a, b) => b[1] - a[1]); let made = 0;
+    for (const [ei] of order){ if (made >= (isTouch ? 4 : 6)) break;
+      const [a, b] = EDGES[ei], m = poiDirs[a].clone().add(poiDirs[b]).normalize(); if (poiDist(m)[0] < 14) continue;
+      const across = edgeN[ei], span = 4.6, fA = m.clone().addScaledVector(across, span/R).normalize(), fB = m.clone().addScaledVector(across, -span/R).normalize();
+      if (!walkable(fA) || !walkable(fB) || obstacles.some(o => o.d.angleTo(fA)*R < o.r + 1.2 || o.d.angleTo(fB)*R < o.r + 1.2)) continue;
+      const g = archTree(span, 6.4 + rnd()*1.2); placeAt(g, m, 0, -0.1); faceToward(g, m.clone().addScaledVector(V().crossVectors(across, m), 0.1).normalize().multiplyScalar(R));
+      bake(g); addObstacle(fA, 0.9); addObstacle(fB, 0.9); made++; } }
   // palms on the beaches
-  for (let i=0, p=0; i<4000 && p<Math.round(16*AREA); i++){ const d = randDir(), s = terrainInfo(d); if (s.n < 0.48 || s.n > 0.58 || s.h < SEA + 0.25 || s.pd < 9 || s.rd < 2.4) continue; if (!clearOf(d,9,2.4,2)) continue;
+  for (let i=0, p=0; i<4000 && p<Math.round(14*AREA); i++){ const d = randDir(), s = terrainInfo(d); if (s.n < 0.48 || s.n > 0.58 || s.h < SEA + 0.25 || s.pd < 9 || s.rd < 2.4) continue; if (!clearOf(d,9,2.4,2)) continue;
     const pl = palm(); placeAt(pl, d, rnd()*6); bake(pl); addObstacle(d, 0.35); p++; }
-  // a few rocks and bushes
-  for (let i=0, p=0; i<4000 && p<Math.round(45*AREA); i++){ const d = randDir(), s = okLand(d, 8, 2); if (!s || !clearOf(d,8,2,1.5)) continue;
-    if (rnd() < 0.4){ const r = mesh(new THREE.DodecahedronGeometry(0.3+rnd()*0.4,0), s.h > 2 ? 0x9EA5B6 : 0xC3CAD6); placeAt(r, d, rnd()*6, 0.08); bake(r); addObstacle(d, 0.35); }
-    else { const b = bush(p); placeAt(b, d, rnd()*6); bake(b); } p++; }
-  // instanced grass + flowers, small and sparse
-  const tuft = new THREE.ConeGeometry(0.035,0.15,4); tuft.translate(0,0.075,0);
-  const fl = new THREE.IcosahedronGeometry(0.06,0); fl.translate(0,0.09,0);
-  const NG = Math.round((isTouch ? 1800 : 3200) * AREA), NF = Math.round(600 * AREA);
-  const im = new THREE.InstancedMesh(tuft, toon(0x86BE7E), NG), fm = new THREE.InstancedMesh(fl, new THREE.MeshToonMaterial({ gradientMap: grad }), NF);
-  const o = new THREE.Object3D(), col = new THREE.Color(); let gi = 0, fi = 0; const FC = [0xF7D96A,0xFFFFFF,0xF2A0A8,0xBBD3F2];
-  for (let i=0; i<90000 && (gi<NG || fi<NF); i++){
-    const d = randDir(), s = terrainInfo(d); if (s.h < SEA + 0.25 || s.n > 0.45 || s.h > 2.6 || s.rd < 1.6 || s.pd < 5.5) continue;
-    placeAt(o, d, rnd()*6); o.scale.setScalar(0.7 + rnd()*0.7); o.updateMatrix();
-    if (rnd() < 0.82 && gi < NG) im.setMatrixAt(gi++, o.matrix); else if (fi < NF){ fm.setMatrixAt(fi, o.matrix); fm.setColorAt(fi++, col.setHex(FC[rnd()*FC.length|0])); }
+  // sandstone pillars crowned with moss on the high ground
+  for (let i=0, p=0; i<6000 && p<Math.round(3*AREA); i++){ const d = randDir(), s = okLand(d, 14, 5); if (!s || s.h < 1.6 || !clearOf(d, 14, 5, 3)) continue;
+    const pr = rockPillar(4 + rnd()*4); placeAt(pr, d, rnd()*6, -0.3); bake(pr); addObstacle(d, 1.3); p++; }
+  // mossy boulders, glowing crystal clusters, bushes
+  for (let i=0, p=0; i<5000 && p<Math.round(48*AREA); i++){ const d = randDir(), s = okLand(d, 8, 2); if (!s || !clearOf(d,8,2,1.5)) continue;
+    const roll = rnd();
+    if (roll < 0.38){ const sz = 0.35 + rnd()*0.75, r = rock(sz, rnd() < 0.75); placeAt(r, d, rnd()*6, -0.05); bake(r); addObstacle(d, sz * 0.85); }
+    else if (roll < 0.46){ const c = crystals(); c.scale.setScalar(0.8 + rnd()*0.6); placeAt(c, d, rnd()*6); bake(c); addObstacle(d, 0.5); }
+    else { const b = bush(p, 1 + rnd()*0.4); placeAt(b, d, rnd()*6); bake(b); } p++; }
+  // grass that moves in the wind: tufts of three blades, instanced per region so the far side is culled
+  const blade = (() => { const g = new THREE.BufferGeometry(), pos = [], cl = [], nr = [], base = new THREE.Color(0x3F6E2E), tip = new THREE.Color(0xB9D46A);
+    for (let k = 0; k < 3; k++){ const a = k / 3 * Math.PI + 0.3, cx = Math.cos(a), cz = Math.sin(a), w = 0.045, h = 0.3 + k * 0.06, lean = 0.08;
+      const v = [[-w*cx, 0, -w*cz], [w*cx, 0, w*cz], [lean*cz, h, -lean*cx]];
+      v.forEach((q, n) => { pos.push(...q); nr.push(0, 1, 0); (n === 2 ? tip : base).toArray(cl, cl.length); }); }
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nr, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(cl, 3)); return g; })();
+  grassMat = new THREE.MeshToonMaterial({ gradientMap: grad, vertexColors: true, side: THREE.DoubleSide });
+  grassMat.onBeforeCompile = sh => { houseStyle(sh); sh.uniforms.uT = { value: 0 }; grassMat.userData.s = sh;
+    sh.vertexShader = 'uniform float uT;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      { vec3 ip = vec3(instanceMatrix[3]); float h = position.y;
+        float w = sin(uT * 1.7 + ip.x * 0.45 + ip.z * 0.31) * 0.7 + sin(uT * 3.3 + ip.y * 0.9) * 0.3;
+        transformed.x += w * h * 0.45; transformed.z += cos(uT * 1.3 + ip.y * 0.5) * h * 0.22; }`); };
+  const fl = new THREE.IcosahedronGeometry(0.07,0); fl.translate(0,0.16,0);
+  const NG = Math.round((isTouch ? 2400 : 5200) * AREA), NF = Math.round((isTouch ? 300 : 520) * AREA);
+  const gl = [[],[],[],[],[],[]], fls = [[],[],[],[],[],[]];
+  const o = new THREE.Object3D(), GC = [0x7DB65A, 0x8CC163, 0x6FA552, 0xA9C25E, 0xC9B65A], FC = [0xF7D96A,0xFFFFFF,0xF2A0A8,0xBBD3F2,0xF4B26B];
+  for (let i=0, gi=0, fi=0; i<160000 && (gi<NG || fi<NF); i++){
+    const d = randDir(), s = terrainInfo(d); if (s.h < SEA + 0.25 || s.n > 0.45 || s.h > 2.8 || s.rd < 1.6 || s.pd < 7) continue;
+    placeAt(o, d, rnd()*6); o.scale.setScalar(0.8 + rnd()*0.9); o.updateMatrix(); const rg = regionOf(o.position);
+    if (rnd() < 0.9 && gi < NG){ gl[rg].push([o.matrix.clone(), GC[rnd() < 0.86 ? (rnd()*3|0) : 3 + (rnd()*2|0)]]); gi++; }
+    else if (fi < NF){ fls[rg].push([o.matrix.clone(), FC[rnd()*FC.length|0]]); fi++; }
   }
-  im.count = gi; fm.count = fi; planet.add(im, fm);
+  const col = new THREE.Color(), fmat = new THREE.MeshToonMaterial({ gradientMap: grad });
+  const emit = (list, geo, mat, recv) => { if (!list.length) return; const im = new THREE.InstancedMesh(geo, mat, list.length);
+    list.forEach(([mx, c], k) => { im.setMatrixAt(k, mx); im.setColorAt(k, col.setHex(c)); }); im.receiveShadow = recv && SHADOWS;
+    im.computeBoundingSphere ? im.computeBoundingSphere() : null; if (!im.boundingSphere){ const bs = new THREE.Sphere(); const pts = list.map(([mx]) => V().setFromMatrixPosition(mx)); bs.setFromPoints(pts); bs.radius += 1; im.geometry = geo.clone(); im.geometry.boundingSphere = bs; }
+    planet.add(im); };
+  for (let r = 0; r < 6; r++){ emit(gl[r], blade, grassMat, true); emit(fls[r], fl, fmat, false); }
 }
+let grassMat = null;
 
 /* stars to collect */
 const starGeo = (() => { const s = new THREE.Shape(); for (let i=0;i<10;i++){ const a = i/10*Math.PI*2 - Math.PI/2, r = i%2 ? 0.17 : 0.4; i ? s.lineTo(Math.cos(a)*r, Math.sin(a)*r) : s.moveTo(Math.cos(a)*r, Math.sin(a)*r); } return new THREE.ExtrudeGeometry(s, { depth: 0.12, bevelEnabled: false }).translate(0,0,-0.06); })();
@@ -1378,7 +1464,10 @@ function spawn(hq = pois[0]){
   const e = EDGES[ADJ[hq.i][0]], nb = e[0] === hq.i ? e[1] : e[0];
   const tow = poiDirs[nb].clone().sub(hq.dir); tow.addScaledVector(hq.dir, -tow.dot(hq.dir)).normalize();
   const side = V().crossVectors(hq.dir, tow).normalize();
-  pDir.copy(hq.dir).addScaledVector(tow.clone().multiplyScalar(0.55).add(side.multiplyScalar(0.84)).normalize(), (hq.r + 4.5)/R).normalize();
+  const dirv = tow.clone().multiplyScalar(0.55).add(side.multiplyScalar(0.84)).normalize();
+  // stand on dry ground in front of HQ: step around the building until the spot is walkable and clear
+  for (let k = 0; k < 36; k++){ const a = (k % 2 ? 1 : -1) * Math.ceil(k/2) * 0.3, r = hq.r + 4.5 - (k % 3) * 0.8;
+    pDir.copy(hq.dir).addScaledVector(dirv.clone().applyAxisAngle(hq.dir, a), r/R).normalize(); resolve(pDir); if (walkable(pDir)) break; }
   pFwd.copy(hq.dir).sub(pDir); pFwd.addScaledVector(pDir, -pFwd.dot(pDir)).normalize();   // face HQ, camera stays outside it
   camFwd.copy(pFwd);
 }
@@ -1411,7 +1500,8 @@ function updatePlayer(dt, now){
     pFwd.lerp(wish, 1 - Math.exp(-14*dt)).addScaledVector(up, -pFwd.dot(up)).normalize();
     const flying = riding && car && car.userData.ship && flyY > 1.2;
     const speed = (flying ? (run ? 30 : 20) : riding ? (run ? 17 : 12) : run ? 7.8 : 4.4) * mag * (landing ? 0.25 : 1), stepLen = speed * dt;
-    const tryDir = dirv => { const nd = V().copy(pDir).addScaledVector(dirv, stepLen/R).normalize(); if (flying) return nd; resolve(nd); return walkable(nd) ? nd : null; };
+    const stuck = !walkable(pDir);   // e.g. dropped into water: let them walk out instead of freezing
+    const tryDir = dirv => { const nd = V().copy(pDir).addScaledVector(dirv, stepLen/R).normalize(); if (flying) return nd; resolve(nd); return walkable(nd) || stuck ? nd : null; };
     let nd = tryDir(pFwd);
     if (!nd){ for (const a of [0.6, -0.6, 1.2, -1.2]){ nd = tryDir(V().copy(pFwd).applyAxisAngle(up, a)); if (nd) break; } }
     if (nd){ moved = pDir.angleTo(nd)*R; pDir.copy(nd); }
@@ -1523,6 +1613,7 @@ function frame(now){
     else if (avg < 15 && dprNow < DPR_MAX - 0.01 && now - lastDrop > 15000){ dprNow = Math.min(DPR_MAX, dprNow + 0.1); renderer.setPixelRatio(dprNow); resize(); } } }
   const dt = Math.min(0.05, (now - last)/1000); last = now; const ts = now/1000;
   if (oceanMat && oceanMat.userData.s) oceanMat.userData.s.uniforms.uT.value = ts;
+  if (grassMat && grassMat.userData.s) grassMat.userData.s.uniforms.uT.value = ts;
   clouds.rotation.y += dt*0.008; clouds.rotation.x += dt*0.002;
   if (planeOrbit) planeOrbit.rotation.y += dt*0.13; for (const e of extraPlanes) e.orb.rotation.y += dt*e.sp;
   if (sat) sat.userData.orb.rotation.y -= dt*0.05;

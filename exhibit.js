@@ -266,8 +266,10 @@ const QUIZ_N = 5;
 let quiz = null;
 EXTRA.quiz = () => {
   const ar = lang === 'ar';
-  if (!quiz){ const pool = xshuffle(WORK.filter(w => w.logo)).slice(0, QUIZ_N);
-    quiz = { qs: pool.map(w => ({ w, opts: xshuffle([w, ...xshuffle(WORK.filter(o => o.logo && o.id !== w.id)).slice(0, 2)]) })), i: 0, score: 0, picked: null }; }
+  if (!quiz){ // real work only: a cover with the brand's logo on it would give the answer away
+    const real = w => w.imgs.filter(i => i.startsWith('work/'));
+    const pool = [...xshuffle(WORK.filter(w => w.logo && real(w).length)), ...xshuffle(WORK.filter(w => w.logo && !real(w).length))].slice(0, QUIZ_N);
+    quiz = { qs: pool.map(w => ({ w, img: (real(w).length ? xshuffle(real(w))[0] : w.imgs[0]), opts: xshuffle([w, ...xshuffle(WORK.filter(o => o.logo && o.id !== w.id)).slice(0, 2)]) })), i: 0, score: 0, picked: null }; }
   if (quiz.i >= QUIZ_N){
     const best = Math.max(save.q || 0, quiz.score); save.q = best; persist();
     shell(L("ACADEMY QUIZ","مسابقة الأكاديمية"), `${quiz.score}/${QUIZ_N}`, `
@@ -282,9 +284,9 @@ EXTRA.quiz = () => {
   shell(L("ACADEMY QUIZ","مسابقة الأكاديمية"), ar ? `السؤال ${quiz.i + 1} من ${QUIZ_N}` : `Question ${quiz.i + 1} of ${QUIZ_N}`, `
     <div class="qbar"><i style="width:${(quiz.i / QUIZ_N) * 100}%"></i></div>
     <p class="ex-lead">${ar ? 'الشغل ده لأنهي عميل؟' : 'Which client is this work for?'} <b class="qscore">★ ${quiz.score}</b></p>
-    <div class="qimg"><img src="img/${q.w.imgs[0]}" alt=""></div>
+    <div class="qrow"><div class="qimg"><img src="img/${q.img}" alt=""></div>
     <div class="qopts">${q.opts.map(o => `<button type="button" class="qopt ${quiz.picked ? (o.id === q.w.id ? 'right' : o.id === quiz.picked ? 'wrong' : '') : ''}" data-q="${o.id}" ${quiz.picked ? 'disabled' : ''}>
-      <img src="img/logos/${o.logo}.png" alt=""><span>${t(o.name)}</span></button>`).join('')}</div>`);
+      <img src="img/logos/${o.logo}.png" alt=""><span>${t(o.name)}</span></button>`).join('')}</div></div>`);
   $('exbody').querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
     quiz.picked = b.dataset.q; const ok = quiz.picked === q.w.id; if (ok){ quiz.score++; Sfx.collect(); } else Sfx.land();
     xRender(); setTimeout(() => { if (state !== 'exhibit' || !quiz) return; quiz.i++; quiz.picked = null; xRender(); }, 1300);

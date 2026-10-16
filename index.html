@@ -48,10 +48,13 @@ button{font:inherit;cursor:pointer;color:inherit}
 @keyframes wob{50%{transform:rotate(-6deg) translateY(-3px)}}
 
 /* title */
-#title{display:grid;place-items:center;align-content:center;gap:22px;padding-inline:16px;text-align:center;z-index:30}
-.tiles{display:grid;gap:10px;justify-items:center;transform:rotate(-2deg)}
-.row{display:flex;gap:10px}
-.tile{width:clamp(62px,13vw,112px);aspect-ratio:1;display:grid;place-items:center;background:var(--paper);color:var(--ink);font-family:var(--display);font-weight:900;font-size:clamp(38px,8.6vw,76px);line-height:1;border:4px solid var(--ink);box-shadow:6px 7px 0 var(--ink);border-radius:6px;animation:pop .6s cubic-bezier(.3,1.6,.5,1) both}
+#title{display:grid;place-items:center;align-content:safe center;gap:clamp(8px,2.2vh,22px);overflow-y:auto;padding-block:calc(70px + env(safe-area-inset-top,0px)) 16px;padding-inline:16px;text-align:center;z-index:30}
+.tiles{display:grid;gap:clamp(6px,1vh,10px);justify-items:center;transform:rotate(-2deg)}
+.row{display:flex;gap:clamp(6px,1vh,10px)}
+.titlelinks{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}.titlelinks .pflink{margin-top:0}
+@media (max-height:820px){#title .pflink{padding:8px 16px;font-size:14px}#title .begin{padding:10px 40px;font-size:18px}body.ar #title .begin{font-size:22px}#title .hint{font-size:13px;padding:6px 12px}#title .kicker{font-size:13px}}
+@media (max-height:620px){#title .hint{display:none}.tile{box-shadow:4px 5px 0 var(--ink);border-width:3px}}
+.tile{width:clamp(44px,min(13vw,10.5vh),112px);aspect-ratio:1;display:grid;place-items:center;background:var(--paper);color:var(--ink);font-family:var(--display);font-weight:900;font-size:clamp(26px,min(8.6vw,7vh),76px);line-height:1;border:4px solid var(--ink);box-shadow:6px 7px 0 var(--ink);border-radius:6px;animation:pop .6s cubic-bezier(.3,1.6,.5,1) both}
 .tile.b{background:var(--blue);color:var(--paper)}
 .row .tile:nth-child(2){transform:rotate(3deg)} .row .tile:nth-child(3){transform:rotate(-2deg)}
 .row:first-child .tile:nth-child(1){animation-delay:.05s}.row:first-child .tile:nth-child(2){animation-delay:.12s}.row:first-child .tile:nth-child(3){animation-delay:.19s}
@@ -343,10 +346,13 @@ body.ar .opt{font-size:17px}
 .sendrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .ex-cta.wa{background:#25D366;color:#fff} .ex-cta.light{background:#fff}
 button.ex-cta{font:inherit;font-weight:900}
-.qimg{border:4px solid var(--ink);border-radius:10px;overflow:hidden;aspect-ratio:16/9;background:#dfe6f3}.qimg img{width:100%;height:100%;object-fit:cover;animation:kenburns 6s ease-in-out infinite alternate}
+.qimg{border:4px solid var(--ink);border-radius:10px;overflow:hidden;height:clamp(150px,34vh,320px);background:#dfe6f3}.qimg img{width:100%;height:100%;object-fit:cover;animation:kenburns 6s ease-in-out infinite alternate}
 .qopts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .qopt{display:grid;place-items:center;gap:6px;padding:12px 6px;border:3px solid var(--ink);border-radius:10px;background:#fff;font-weight:800;box-shadow:3px 3px 0 #cfd8ea}
 .qopt img{height:46px;max-width:85%;object-fit:contain}
+.qrow{display:grid;gap:12px}
+@media (max-height:560px){.qimg{height:clamp(110px,26vh,200px)}.qopt{padding:8px 4px}.qopt img{height:32px}}
+@media (max-height:500px) and (min-aspect-ratio:4/3){.qrow{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:stretch}.qimg{height:auto;min-height:0;max-height:52vh}.qrow{align-items:start}.qopts{grid-template-columns:1fr;gap:6px;align-content:start}.qopt{grid-template-columns:auto 1fr;justify-items:start;align-items:center;padding:5px 10px;gap:10px;min-height:0}.qopt img{height:26px;max-width:70px}#exbody .ex-lead{margin:0}}
 .qopt.right{background:#c9f0d2;box-shadow:0 0 0 4px #3e9e5b;animation:tilepop .4s} .qopt.wrong{background:#ffd6d0;animation:shake .4s}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .qscore{float:inline-end;color:#E0A800}
@@ -544,19 +550,19 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js?v=23"></script>
-<script src="site-data.js?v=23"></script>
-<script src="game.js?v=23"></script>
-<script src="exhibit.js?v=23"></script>
-<script src="space.js?v=23"></script>
-<script src="office.js?v=23"></script>
+<script src="content.js?v=24"></script>
+<script src="site-data.js?v=24"></script>
+<script src="game.js?v=24"></script>
+<script src="exhibit.js?v=24"></script>
+<script src="space.js?v=24"></script>
+<script src="office.js?v=24"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="net.js?v=23"></script>
-<script src="interiors.js?v=23"></script>
-<script src="extras.js?v=23"></script>
-<script src="features.js?v=23"></script>
-<script src="map.js?v=23"></script>
-<script src="roomfun.js?v=23"></script>
-<script src="analytics.js?v=23"></script>
+<script src="net.js?v=24"></script>
+<script src="interiors.js?v=24"></script>
+<script src="extras.js?v=24"></script>
+<script src="features.js?v=24"></script>
+<script src="map.js?v=24"></script>
+<script src="roomfun.js?v=24"></script>
+<script src="analytics.js?v=24"></script>
 </body>
 </html>
