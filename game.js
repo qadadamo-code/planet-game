@@ -662,7 +662,7 @@ function propAt(g, obj, x, z, yaw = 0){
   const wp = g.localToWorld(V(x, 0, z)); placeAt(obj, wp.clone().normalize());
   const f = g.localToWorld(V(Math.sin(yaw), 0, Math.cos(yaw))).sub(g.position); faceToward(obj, obj.position.clone().add(f)); return obj;
 }
-function addObstacle(d, r){ obstacles.push({ d: d.clone().normalize(), r }); }
+function addObstacle(d, r, top){ obstacles.push({ d: d.clone().normalize(), r, top }); }   // top: climbable height (rocks, benches); undefined = a wall
 function clearOf(d, minPoi = 9, minRoad = 2, minObs = 1.2){ const [pd] = poiDist(d); if (pd < minPoi) return false; if (roadDist(d) < minRoad) return false;
   for (const o of obstacles) if (d.dot(o.d) > Math.cos((minObs + o.r)/R)) return false; return true; }
 
@@ -1076,7 +1076,7 @@ function buildNature(){
   // mossy boulders, glowing crystal clusters, bushes
   for (let i=0, p=0; i<5000 && p<Math.round(48*AREA); i++){ const d = randDir(), s = okLand(d, 8, 2); if (!s || !clearOf(d,8,2,1.5)) continue;
     const roll = rnd();
-    if (roll < 0.38){ const sz = 0.35 + rnd()*0.75, r = rock(sz, rnd() < 0.75); placeAt(r, d, rnd()*6, -0.05); bake(r); addObstacle(d, sz * 0.85); }
+    if (roll < 0.38){ const sz = 0.35 + rnd()*0.75, r = rock(sz, rnd() < 0.75); placeAt(r, d, rnd()*6, -0.05); bake(r); addObstacle(d, sz * 0.92, sz * 0.98); }
     else if (roll < 0.46){ const c = crystals(); c.scale.setScalar(0.8 + rnd()*0.6); placeAt(c, d, rnd()*6); bake(c); addObstacle(d, 0.5); }
     else { const b = bush(p, 1 + rnd()*0.4); placeAt(b, d, rnd()*6); bake(b); } p++; }
   const fl = new THREE.IcosahedronGeometry(0.07,0); fl.translate(0,0.16,0);
@@ -1554,6 +1554,7 @@ document.querySelectorAll('.copy').forEach(b => b.onclick = async () => {
 /* ---------- player state ---------- */
 const pDir = V(), pFwd = V(), camFwd = V();
 let turnRate = 0, pLandT = 0; const prevFwd = V(0,0,1);
+let jumpBuf = 0, coyote = 0, moveSpeed = 0, floorY = 0;
 let jumpReq = false, jy = 0, vy = 0, grounded = true, walkT = 0, animSpeed = 0, lastStepSign = 1, introT = 0;
 function spawn(hq = pois[0]){
   const e = EDGES[ADJ[hq.i][0]], nb = e[0] === hq.i ? e[1] : e[0];
@@ -1575,8 +1576,14 @@ function inputVector(){
   const l = Math.hypot(ix, iy); if (l > 1){ ix /= l; iy /= l; } return [ix, iy, Math.min(1, l)];
 }
 const walkable = d => heightAt(d) > SEA + 0.12;
-function resolve(d){
-  for (let pass=0; pass<2; pass++) for (const o of obstacles){ const dt0 = d.dot(o.d); if (dt0 < 0.985) continue; const ang = Math.acos(Math.min(1, dt0))*R, rr = o.r + 0.32;
+/* what's under the feet at d: the terrain (0) or the surface of a climbable rock — a dome that's
+   highest in the middle and meets the ground at its rim, so its sides are steep and its top walkable */
+function supportAt(d){ let h = 0;
+  for (const o of obstacles){ if (o.top === undefined) continue; const dt0 = d.dot(o.d); if (dt0 < 0.995) continue;
+    const x = Math.acos(Math.min(1, dt0)) * R - 0.18, k = 1 - (x / (o.r * 1.02)) ** 2; if (k > 0) h = Math.max(h, o.top * Math.sqrt(k)); }
+  return h; }
+function resolve(d, solidRocks = true){
+  for (let pass=0; pass<2; pass++) for (const o of obstacles){ if (!solidRocks && o.top !== undefined) continue; const dt0 = d.dot(o.d); if (dt0 < 0.985) continue; const ang = Math.acos(Math.min(1, dt0))*R, rr = o.r + 0.32;
     if (ang < rr){ tmp2.copy(d).sub(o.d); tmp2.addScaledVector(o.d, -tmp2.dot(o.d)); if (tmp2.lengthSq() < 1e-10) tmp2.set(1,0,0); tmp2.normalize(); d.copy(o.d).multiplyScalar(Math.cos(rr/R)).addScaledVector(tmp2, Math.sin(rr/R)).normalize(); } }
   return d;
 }
@@ -1590,17 +1597,27 @@ function updatePlayer(dt, now){
   const [ix, iy, mag] = state === 'play' && !passenger ? inputVector() : [0,0,0];
   const run = keys.ShiftLeft || keys.ShiftRight || runToggle;
   let moved = 0;
+  const flying = riding && car && car.userData.ship && flyY > 1.2;
   if (mag > 0.08){
     const wish = tmp.copy(camFwd).multiplyScalar(iy).addScaledVector(camRight, ix).normalize();
     if (pFwd.dot(wish) < -0.98) pFwd.addScaledVector(camRight, 0.2);
-    pFwd.lerp(wish, 1 - Math.exp(-14*dt)).addScaledVector(up, -pFwd.dot(up)).normalize();
-    const flying = riding && car && car.userData.ship && flyY > 1.2;
-    const speed = (flying ? (run ? 30 : 20) : riding ? (run ? 17 : 12) : run ? 7.8 : 4.4) * mag * (landing ? 0.25 : 1), stepLen = speed * dt;
+    pFwd.lerp(wish, 1 - Math.exp(-(riding ? 9 : 16)*dt)).addScaledVector(up, -pFwd.dot(up)).normalize();
+  }
+  // speed builds up and eases off instead of snapping: quick to start on foot, heavier in a car
+  { const target = mag > 0.08 ? (flying ? (run ? 30 : 20) : riding ? (run ? 17 : 12) : run ? 7.8 : 4.6) * Math.min(1, mag) * (landing ? 0.25 : 1) : 0;
+    const acc = riding ? (target > moveSpeed ? 3.2 : 2.6) : (target > moveSpeed ? 14 : 18); moveSpeed += (target - moveSpeed) * (1 - Math.exp(-acc * dt)); if (moveSpeed < 0.05) moveSpeed = 0; }
+  if (moveSpeed > 0){
+    const stepLen = moveSpeed * dt;
     const stuck = !walkable(pDir);   // e.g. dropped into water: let them walk out instead of freezing
-    const tryDir = dirv => { const nd = V().copy(pDir).addScaledVector(dirv, stepLen/R).normalize(); if (flying) return nd; resolve(nd); return walkable(nd) || stuck ? nd : null; };
+    const onFoot = !riding && !passenger;
+    const tryDir = dirv => { const nd = V().copy(pDir).addScaledVector(dirv, stepLen/R).normalize(); if (flying) return nd; resolve(nd, !onFoot); if (!(walkable(nd) || stuck)) return null;
+      if (onFoot){ // rocks: a gentle rise you can walk up, a steep side needs a jump, and you can't walk into one mid-air below its top
+        const f = supportAt(nd), rise = f - jy;
+        if (rise > 0.03){ if (!grounded){ if (rise > 0.12) return null; } else if (rise > 0.34 || rise / Math.max(1e-3, stepLen) > 1.4) return null; } }
+      return nd; };
     let nd = tryDir(pFwd);
     if (!nd){ for (const a of [0.6, -0.6, 1.2, -1.2]){ nd = tryDir(V().copy(pFwd).applyAxisAngle(up, a)); if (nd) break; } }
-    if (nd){ moved = pDir.angleTo(nd)*R; pDir.copy(nd); }
+    if (nd){ moved = pDir.angleTo(nd)*R; pDir.copy(nd); } else moveSpeed *= 0.5;
   }
   const shipRide = riding && car && car.userData.ship;
   if (riding && !shipRide) carBump(dt);
@@ -1622,13 +1639,20 @@ function updatePlayer(dt, now){
       if (performance.now() - lastThump > 450){ lastThump = performance.now(); Sfx.land(); burst(p.g.position.clone().lerp(player.position, 0.5), 0xBFE3F2, 18, 3, 0.6); if (navigator.vibrate) navigator.vibrate(50); } }
     if (proc.legL){ proc.legL.rotation.x = proc.legR.rotation.x = -1.45; proc.knL.rotation.x = proc.knR.rotation.x = 1.4; proc.armL.rotation.x = proc.armR.rotation.x = -0.6; } }
   // the ground under us may have pushed us out of an obstacle while idle
-  if (!moved && !shipRide && !passenger) resolve(pDir);
+  if (!moved && !shipRide && !passenger) resolve(pDir, riding);
   up.copy(pDir); pFwd.addScaledVector(up, -pFwd.dot(up)).normalize();
   { const tr = dt > 0 ? Math.atan2(tmp2.crossVectors(prevFwd, pFwd).dot(up), prevFwd.dot(pFwd)) / dt : 0; turnRate += (tr - turnRate) * (1 - Math.exp(-10*dt)); prevFwd.copy(pFwd); }
   animSpeed = THREE.MathUtils.lerp(animSpeed, moved/dt, 1 - Math.exp(-12*dt));
   // jump
-  if (jumpReq && grounded && !riding && !passenger){ vy = 7.6; grounded = false; Sfx.jump(); } jumpReq = false;
-  if (!grounded){ jy += vy*dt; vy -= 22*dt; if (jy <= 0){ jy = 0; vy = 0; grounded = true; pLandT = 0.2; Sfx.land(); } }
+  // jumping: a press a moment before landing still counts (buffer), and so does one just after walking off an edge (coyote time)
+  if (jumpReq) jumpBuf = 0.14; jumpReq = false; jumpBuf = Math.max(0, jumpBuf - dt);
+  const floor = (riding || passenger) ? 0 : supportAt(pDir); floorY = floor;
+  if (grounded){ coyote = 0.11;
+    if (jy > floor + 0.06){ grounded = false; vy = 0; }                       // walked off a rock: fall
+    else jy += (floor - jy) * (1 - Math.exp(-22 * dt)); }                     // follow the rock's surface up and down
+  else coyote = Math.max(0, coyote - dt);
+  if (jumpBuf > 0 && (grounded || coyote > 0) && !riding && !passenger){ vy = 8.7; grounded = false; coyote = 0; jumpBuf = 0; Sfx.jump(); }
+  if (!grounded){ jy += vy*dt; vy -= 25*dt; if (vy < 0 && jy <= floor){ const hard = vy < -9; jy = floor; vy = 0; grounded = true; pLandT = hard ? 0.24 : 0.16; Sfx.land(); } }
   // walk cycle / footsteps
   const moving = animSpeed > 0.4 && grounded && !riding;
   if (riding && car) car.traverse(o => { if (o.userData.wheel) o.rotation.x += moved * 3; });
@@ -1652,7 +1676,7 @@ function updatePlayer(dt, now){
     rig.rotation.z += (lean - rig.rotation.z) * (1 - Math.exp(-8*dt)); rig.rotation.x += (fwdLean - rig.rotation.x) * (1 - Math.exp(-8*dt));
     pLandT = Math.max(0, pLandT - dt); const sq = Math.sin(pLandT / 0.2 * Math.PI) * 0.1; rig.scale.set(1 + sq*0.6, 1 - sq, 1 + sq*0.6);
   }
-  shadow.position.copy(up).multiplyScalar(R + h + 0.04); shadow.quaternion.setFromUnitVectors(V(0,0,1), up); shadow.scale.setScalar(shipRide ? 2.4 * (1 - Math.min(0.7, flyY / 30)) : 1 - Math.min(0.5, jy*0.15));
+  shadow.position.copy(up).multiplyScalar(R + h + floorY + 0.04); shadow.quaternion.setFromUnitVectors(V(0,0,1), up); shadow.scale.setScalar(shipRide ? 2.4 * (1 - Math.min(0.7, flyY / 30)) : 1 - Math.min(0.5, (jy - floorY)*0.15));
   // camera auto-follow while walking (not right after a manual drag)
   if (moved && now - lastDrag > 1600 && pFwd.dot(camFwd) > -0.35) camFwd.lerp(pFwd, 1 - Math.exp(-1.7*dt)).normalize();
   return moved;
