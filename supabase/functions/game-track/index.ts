@@ -8,7 +8,7 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "content-type, apikey, authorization, x-client-info",
 };
-const EVENT_TYPES = new Set(["exhibit", "world", "building", "office", "deliver", "whatsapp", "link", "game", "car", "wall", "mission", "chat", "photo", "begin"]);
+const EVENT_TYPES = new Set(["exhibit", "world", "building", "office", "deliver", "whatsapp", "link", "game", "car", "wall", "mission", "chat", "photo", "begin", "quick", "guide", "cta", "frame", "bus-see"]);
 const MAX_EVENTS = 400;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

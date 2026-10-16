@@ -248,7 +248,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const flag = cc => cc && /^[A-Z]{2}$/i.test(cc) ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '🌐';
 const dur = s => { s = Math.round(s || 0); if (s < 60) return `${fmt(s)} ث`; const m = Math.floor(s / 60); if (m < 60) return `${fmt(m)} د ${s % 60 ? fmt(s % 60) + ' ث' : ''}`; return `${fmt(Math.floor(m / 60))} س ${fmt(m % 60)} د`; };
 const DEV = { mobile: '📱 موبايل', desktop: '💻 كمبيوتر', tablet: '📟 تابلت' };
-const EV = { exhibit: 'فتح عرض', world: 'زار عالم', building: 'دخل مبنى', office: 'دخل المقر', deliver: 'سلّم بريف', whatsapp: 'ضغط واتساب', link: 'فتح رابط', game: 'لعب', car: 'ركب عربية', wall: 'كتب على الحيطة', mission: 'مهمة', chat: 'شات', photo: 'صورة', begin: 'بدأ الجولة' };
+const EV = { exhibit: 'فتح عرض', world: 'زار عالم', building: 'دخل مبنى', office: 'دخل المقر', deliver: 'سلّم بريف', whatsapp: 'ضغط واتساب', link: 'فتح رابط', game: 'لعب', car: 'ركب عربية', wall: 'كتب على الحيطة', mission: 'مهمة', chat: 'شات', photo: 'صورة', begin: 'بدأ الجولة', quick: 'فتح «تعرّف علينا في دقيقة»', guide: 'زرار الدليل', cta: 'ضغط خطوة تالية', frame: 'شاف شغلنا على الحيطة', 'bus-see': 'فتح مكان من الباص' };
 const EXK = { client: 'عميل', work: 'شغل', svc: 'خدمة', brief: 'بريف', about: 'عننا', contact: 'تواصل', team: 'فريق' };
 const exLabel = l => { if (!l) return ''; const i = l.indexOf(': '); if (i < 0) return EXK[l] || l; return `${l.slice(i + 2)} · ${EXK[l.slice(0, i)] || l.slice(0, i)}`; };
 

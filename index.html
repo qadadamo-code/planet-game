@@ -490,6 +490,27 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
   #chatbtn{left:164px;bottom:calc(30px + env(safe-area-inset-bottom,0px))}
 }
 #vig{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(120% 95% at 50% 45%,rgba(0,0,0,0) 58%,rgba(18,30,46,.22) 100%)}
+.quickbtn{display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;font-weight:800;font-size:16px;padding:10px 22px;margin-top:4px;border:3px solid var(--ink);border-radius:10px;background:var(--paper);color:var(--ink);box-shadow:5px 5px 0 var(--blue);cursor:pointer;transition:transform .15s}.quickbtn:hover{transform:translateY(-2px)}.quickbtn small{font-weight:600;font-size:12px;opacity:.7}
+.guide{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:6px;z-index:21;pointer-events:auto;background:rgba(18,21,58,.82);border:2px solid var(--sky);border-radius:999px;padding:5px}
+.guide button{font:inherit;font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px;padding:7px 14px;border:none;border-radius:999px;background:transparent;color:var(--paper);cursor:pointer;white-space:nowrap}.guide button:hover,.guide button:focus-visible{background:var(--gold);color:var(--ink)}
+.guide button:last-child{background:var(--gold);color:var(--ink)}
+@media (max-width:760px){.guide{left:auto;right:10px;transform:none;bottom:calc(205px + env(safe-area-inset-bottom,0px));flex-direction:column;border-radius:16px;padding:4px;gap:3px}.guide button{flex-direction:column;font-size:10px;padding:6px 4px;gap:1px;border-radius:12px;width:54px;font-size:18px}.guide button span{font-size:10px}}
+body.passenger .guide{display:none}
+@media (min-width:761px){#prompt{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+.scfoot{margin-top:6px;padding:16px;border:3px dashed var(--ink);border-radius:10px;background:#FFF8DD;display:grid;gap:10px;justify-items:center;text-align:center}.scfoot b{font-size:17px}
+.scsvc{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}.scsvc button{font:inherit;text-align:start;display:grid;gap:4px;padding:12px;border:3px solid var(--ink);border-radius:10px;background:#fff;color:var(--ink);box-shadow:4px 4px 0 var(--blue);cursor:pointer;animation:pop .45s both;animation-delay:var(--d)}
+.scsvc span{font-family:var(--display);font-weight:900;color:var(--blue);font-size:13px}.scsvc b{font-size:16px}.scsvc small{font-size:12.5px;opacity:.75;line-height:1.5}
+.qstats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.qstats div{background:var(--ink);color:var(--paper);border-radius:10px;padding:12px;text-align:center;display:grid;gap:2px}.qstats b{font-family:var(--display);font-size:26px;color:var(--gold)}.qstats span{font-size:12.5px}
+.qwork{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.qwork button{font:inherit;padding:0;border:3px solid var(--ink);border-radius:10px;overflow:hidden;background:#fff;color:var(--ink);cursor:pointer;display:grid;text-align:start}
+.qwork img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}.qwork b{padding:6px 8px 0;font-size:14px}.qwork small{padding:0 8px 8px;font-size:12px;opacity:.7}
+.qsvc{display:flex;flex-wrap:wrap;gap:8px}.qsvc button{font:inherit;font-weight:700;font-size:13.5px;padding:7px 13px;border:2px solid var(--ink);border-radius:999px;background:#fff;color:var(--ink);cursor:pointer}.qsvc button:hover{background:var(--gold)}
+.qlogos{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}.qlogos img{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border:2px solid #dfe5ef;border-radius:10px;padding:6px;box-sizing:border-box}
+.qteam{display:flex;flex-wrap:wrap;gap:8px}.qteam button{font:inherit;display:grid;justify-items:center;gap:3px;padding:0;border:none;background:none;color:var(--ink);cursor:pointer;width:60px}.qteam img{width:54px;height:54px;border-radius:50%;object-fit:cover;border:3px solid var(--ink)}.qteam span{font-size:11.5px;font-weight:700}
+.qmore{justify-self:start;font:inherit;font-weight:800;font-size:13.5px;padding:0;border:none;background:none;color:var(--blue);cursor:pointer;text-decoration:underline}
+.qend{display:grid;gap:10px;justify-items:center;text-align:center;padding:18px;border-radius:12px;background:var(--ink);color:var(--paper)}.qend b{font-size:20px}
+.qplay{font:inherit;font-weight:900;font-size:17px;padding:12px 26px;border:3px solid var(--ink);border-radius:8px;background:var(--gold);color:var(--ink);box-shadow:5px 5px 0 var(--sky);cursor:pointer}
+.mwork{display:grid;gap:8px;margin-top:8px}
+@media (max-width:520px){.qstats b{font-size:20px}.qstats span{font-size:11px}}
 </style>
 </head>
 <body class="ar">
@@ -591,25 +612,26 @@ body.ar .ticks .tk{font-size:17px;animation-name:tickr}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="content.js?v=30"></script>
-<script src="site-data.js?v=30"></script>
-<script src="game.js?v=30"></script>
-<script src="exhibit.js?v=30"></script>
-<script src="space.js?v=30"></script>
-<script src="office.js?v=30"></script>
+<script src="content.js?v=31"></script>
+<script src="site-data.js?v=31"></script>
+<script src="game.js?v=31"></script>
+<script src="exhibit.js?v=31"></script>
+<script src="space.js?v=31"></script>
+<script src="office.js?v=31"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="net.js?v=30"></script>
-<script src="interiors.js?v=30"></script>
-<script src="extras.js?v=30"></script>
-<script src="features.js?v=30"></script>
-<script src="map.js?v=30"></script>
-<script src="roomfun.js?v=30"></script>
-<script src="bus.js?v=30"></script>
-<script src="bus2.js?v=30"></script>
-<script src="voice.js?v=30"></script>
-<script src="avatar.js?v=30"></script>
-<script src="staff.js?v=30"></script>
-<script src="chat.js?v=30"></script>
-<script src="analytics.js?v=30"></script>
+<script src="net.js?v=31"></script>
+<script src="interiors.js?v=31"></script>
+<script src="extras.js?v=31"></script>
+<script src="features.js?v=31"></script>
+<script src="map.js?v=31"></script>
+<script src="roomfun.js?v=31"></script>
+<script src="bus.js?v=31"></script>
+<script src="bus2.js?v=31"></script>
+<script src="voice.js?v=31"></script>
+<script src="avatar.js?v=31"></script>
+<script src="staff.js?v=31"></script>
+<script src="chat.js?v=31"></script>
+<script src="showcase.js?v=31"></script>
+<script src="analytics.js?v=31"></script>
 </body>
 </html>

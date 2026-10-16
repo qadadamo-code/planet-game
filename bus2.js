@@ -5,6 +5,7 @@
    · a timetable at every bus stop: when the bus comes next, and the stops after
    · themed tours: pick studios, food, health, shopping or places — the bar counts down to the next one */
 const TOURS = [
+  { id: 'story', icon: '⭐', name: L('The Planet story', 'قصة Planet') },
   { id: 'all', icon: '🌍', name: L('The whole planet', 'الكوكب كله') },
   { id: 'studios', icon: '🎨', name: L('Planet studios', 'استوديوهات Planet') },
   { id: 'food', icon: '🍽️', name: L('Food & cafés', 'أكل وكافيهات') },
@@ -14,8 +15,22 @@ const TOURS = [
 ];
 const stopTheme = p => { if (p.svc) return 'studios'; const k = p.district && DISTRICTS[p.district] ? DISTRICTS[p.district].kind : '';
   if (k === 'resto' || p.id === 'cafe') return 'food'; if (k === 'clinic') return 'health'; if (k === 'shop' || k === 'kiosk') return 'shops'; return p.client ? 'shops' : 'places'; };
-let busTour = store.get('pm-bus-tour') || 'all';
-const inTour = p => busTour === 'all' || stopTheme(p) === busTour;
+// the story tour: the stops that tell who we are — the studios, our work, our clients, the team, how we started
+const STORY_IDS = ['gallery', 'monument', 'careers', 'cafe', 'observatory', 'lighthouse', 'values', 'process', 'lab', 'academy', 'hq', 'fly'];
+const isStory = p => !!p.svc || STORY_IDS.includes(p.id);
+let busTour = store.get('pm-bus-tour') || 'story';
+const inTour = p => busTour === 'all' || (busTour === 'story' ? isStory(p) : stopTheme(p) === busTour);
+function storyLine(p){
+  const first = l => t(l).split(/(?<=[.؟!])\s/)[0];
+  if (p.svc) return lang === 'ar' ? `استوديو ${p.n}: ${t(p.name)}. ${first(p.lines[0])}` : `Studio ${p.n}: ${t(p.name)}. ${first(p.lines[0])}`;
+  if (p.id === 'gallery'){ const w = WORK.filter(x => x.sum); const k = w[Math.floor(Math.random() * w.length)];
+    return lang === 'ar' ? `معرض أعمالنا. زي ${k.name.ar}: ${first(k.sum)}` : `Our gallery. Like ${k.name.en}: ${first(k.sum)}`; }
+  if (p.id === 'monument') return lang === 'ar' ? 'ده نُصب عملائنا — أكتر من 370 علامة اشتغلنا معاها.' : 'Our clients\' monument — more than 370 brands we have worked with.';
+  if (p.id === 'careers' || p.id === 'cafe') return lang === 'ar' ? `هنا بتقابل فريق Planet — ${TEAM.length} شخص بيعملوا كل ده.` : `This is where you meet the Planet team — ${TEAM.length} people who make all of this.`;
+  if (p.id === 'hq') return lang === 'ar' ? 'مقر Planet: تمن استوديوهات، فريق واحد، خطة واحدة.' : 'Planet HQ: eight studios, one team, one plan.';
+  if (p.id === 'fly'){ const w = WORK.find(x => x.id === 'fly29'); if (w && w.sum) return `${t(p.name)}. ${first(w.sum)}`; }
+  return `${t(p.name)}. ${p.lines && p.lines[0] ? first(p.lines[0]) : ''}`;
+}
 const stamps = (() => { try { return new Set(JSON.parse(store.get('pm-bus-stamps') || '[]')); } catch (e) { return new Set(); } })();
 const saveStamps = () => store.set('pm-bus-stamps', JSON.stringify([...stamps]));
 const mmss = s => { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
@@ -32,7 +47,9 @@ function nextTourStop(){ let best = null; BUS.stops.forEach((p, k) => { if (busT
 /* ---------- arriving: announcement, stamp, badge ---------- */
 function busArrive(p, k){
   const ar = lang === 'ar', themed = inTour(p);
-  if (typeof Voice !== 'undefined' && Voice.on) Voice.say(ar ? `المحطة: ${t(p.name)}` : `Next stop, ${t(p.name)}`, 'bus driver');
+  const story = busTour === 'story' && isStory(p) ? storyLine(p) : '';
+  if (typeof Voice !== 'undefined' && Voice.on) Voice.say((ar ? `المحطة: ${t(p.name)}` : `Next stop, ${t(p.name)}`) + (story ? '. ' + story : ''), 'bus driver');
+  if (story) setTimeout(() => mini('⭐ ' + story), 300);
   if (!stamps.has(p.id)){ stamps.add(p.id); saveStamps(); if (themed) setTimeout(() => mini(`🎫 ${ar ? 'ختم جديد في باسبورك:' : 'New stamp in your passport:'} ${t(p.name)} (${stamps.size}/${BUS.stops.length})`), 900);
     if (stamps.size >= BUS.stops.length){ const b = myBadges(); if (!b.some(x => x.id === 'bus-tourist')){ b.push({ id: 'bus-tourist', icon: '🎫', name: L('Planet tourist', 'سائح Planet') }); store.set('pm-badges', JSON.stringify(b)); Sfx.deliver(); toast(ar ? '🏅 بقيت سائح Planet!' : '🏅 You are a Planet tourist!', ar ? 'زرت كل محطات الكوكب بالباص' : 'You rode to every stop on the planet'); } }
     else if ([10, 25].includes(stamps.size)) toast(`🎫 ${stamps.size} ${ar ? 'ختم!' : 'stamps!'}`, ar ? 'كمّل الجولة عشان بادج سائح Planet' : 'Keep riding for the Planet tourist badge'); }
@@ -58,7 +75,7 @@ function busSeatMe(){
     plainPaint(b); const el = document.getElementById('busbar'); if (!el || el.hidden) return;
     let x = document.getElementById('busx');
     if (!x){ x = document.createElement('div'); x.id = 'busx'; x.className = 'bb-x';
-      x.innerHTML = '<div class="bb-tours" id="bbtours"></div><div class="bb-info"><span id="bbtour"></span><button type="button" id="bbpass"></button></div><div id="bbride" class="bb-ride"></div>';
+      x.innerHTML = '<div class="bb-tours" id="bbtours"></div><div class="bb-info"><span id="bbtour"></span><button type="button" id="bbsee" hidden></button><button type="button" id="bbpass"></button></div><div id="bbride" class="bb-ride"></div>';
       el.appendChild(x); x.querySelector('#bbpass').onclick = () => { Sfx.click(); openPassport(); }; x.dataset.lang = ''; }
     const ar = lang === 'ar';
     if (x.dataset.lang !== lang + busTour){ x.dataset.lang = lang + busTour;
@@ -67,6 +84,8 @@ function busSeatMe(){
     const nx = nextTourStop();
     x.querySelector('#bbtour').textContent = nx ? (ar ? `⏱️ ${t(nx.p.name)} بعد ${mmss(nx.e)}` : `⏱️ ${t(nx.p.name)} in ${mmss(nx.e)}`) : '';
     x.querySelector('#bbpass').textContent = `🎫 ${stamps.size}/${BUS.stops.length}`;
+    const see = x.querySelector('#bbsee'), here = b && b.stop >= 0 ? BUS.stops[b.stop] : null, open = here && typeof exhibitFor === 'function' ? exhibitFor(here) : null;
+    see.hidden = !open; if (open){ see.textContent = ar ? `👀 شوف ${t(here.name)}` : `👀 See ${t(here.name)}`; see.onclick = () => { Sfx.click(); try { if (typeof anEvent === 'function') anEvent('bus-see', t(here.name)); } catch (e) {} open(); }; }
     const riders = [...peers.values()].filter(p => p.bu).map(p => t(visitorName(p.num, p.nick)));
     x.querySelector('#bbride').textContent = riders.length ? (ar ? `👥 معاك في الباص: ${riders.join('، ')}` : `👥 On the bus with you: ${riders.join(', ')}`) : '';
   }; }
