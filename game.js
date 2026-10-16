@@ -170,6 +170,9 @@ function terrainInfo(d){
 }
 const heightAt = d => terrainInfo(d).h;
 const SEA = -0.38;
+const RING = 8.4;   // radius of the roundabout round every place (road centre line)
+const RN = i => i === 0 ? 11.4 : RING;   // HQ is a big building: its roundabout is wider
+const E0 = ei => RN(EDGES[ei][0]), E1 = ei => RN(EDGES[ei][1]);   // ring radius at either end of a road
 
 /* ---------- static batching: many small meshes → a few big ones ---------- */
 const planet = new THREE.Group(); scene.add(planet);
@@ -212,8 +215,8 @@ function buildTerrain(){
   let g0 = new THREE.IcosahedronGeometry(1, DETAIL); g0.deleteAttribute('normal'); g0.deleteAttribute('uv');
   g0 = THREE.BufferGeometryUtils.mergeVertices(g0, 1e-5);
   const P = g0.attributes.position, idx = g0.index.array, nv = P.count;
-  const vh = new Float32Array(nv), vn = new Float32Array(nv), vr = new Float32Array(nv), vp = new Float32Array(nv), d = V();
-  for (let i=0;i<nv;i++){ d.fromBufferAttribute(P, i).normalize(); const s = terrainInfo(d); vh[i] = s.h; vn[i] = s.n; vr[i] = s.rd; vp[i] = s.pd; P.setXYZ(i, d.x, d.y, d.z); }
+  const vh = new Float32Array(nv), vn = new Float32Array(nv), vr = new Float32Array(nv), vp = new Float32Array(nv), vi = new Int16Array(nv), d = V();
+  for (let i=0;i<nv;i++){ d.fromBufferAttribute(P, i).normalize(); const s = terrainInfo(d); vh[i] = s.h; vn[i] = s.n; vr[i] = s.rd; vp[i] = s.pd; vi[i] = poiDist(d)[1]; P.setXYZ(i, d.x, d.y, d.z); }
   const pos = new Float32Array(idx.length*3), col = new Float32Array(idx.length*3);
   const C = h => new THREE.Color(h);
   const G = [C(0x74B04F), C(0x66A247), C(0x84BC5A), C(0x5A9643)], road = C(0xA9A39A), curb = C(0xEDE6D8), tileA = C(0xF1E7D4), tileB = C(0xE4D5BC),
@@ -224,8 +227,10 @@ function buildTerrain(){
     const h = (vh[a]+vh[b]+vh[c])/3, n = (vn[a]+vn[b]+vn[c])/3, rd = Math.min(vr[a],vr[b],vr[c]), pd = (vp[a]+vp[b]+vp[c])/3;
     m.set(P.getX(a)+P.getX(b)+P.getX(c), P.getY(a)+P.getY(b)+P.getY(c), P.getZ(a)+P.getZ(b)+P.getZ(c)).multiplyScalar(R/3);
     let cl;
-    if (pd < 5.2) cl = ((Math.floor(m.x*1.3)+Math.floor(m.y*1.3)+Math.floor(m.z*1.3)) & 1) ? tileA : tileB;
-    else if (rd < 1.1) cl = road; else if (rd < 1.45) cl = curb;
+    const RR = RN(vi[a]), ringD = Math.abs(pd - RR);
+    if (pd < RR - 1.45) cl = ((Math.floor(m.x*1.3)+Math.floor(m.y*1.3)+Math.floor(m.z*1.3)) & 1) ? tileA : tileB;   // the paved square
+    else if (ringD < 1.1) cl = road; else if (ringD < 1.45) cl = curb;                                                // the roundabout
+    else if (rd < 1.1 && pd > RR) cl = road; else if (rd < 1.45 && pd > RR) cl = curb;
     else if (h < SEA - 0.05) cl = seabed; else if (h < SEA + 0.18) cl = foam; else if (n > 0.48) cl = sand;
     else if (h > 4.6) cl = snow; else if (h > 2.6) cl = (f/3)%3 ? rock : rock2;
     else { const k = Math.sin(m.x*0.33+1)*Math.sin(m.z*0.29) + Math.sin(m.y*0.41+m.x*0.17)*0.5; cl = k > 0.95 ? meadow : k > 0.2 ? G[2] : k > -0.45 ? G[0] : G[1]; }
@@ -960,21 +965,22 @@ function carObstacles(){
   const list = [];
   for (const rec of cars) if (rec.car !== car && rec.car.parent) list.push({ pos: rec.car.getWorldPosition(V()), rec });
   for (const v of vehicles) list.push({ pos: v.g.position.clone(), van: v });
+  if (typeof bus !== 'undefined' && bus && bus.visible) list.push({ pos: bus.position.clone(), r: 3.4 });
   if (typeof peers !== 'undefined') for (const p of peers.values()) if (p.riding && p.g.visible && !p.ps) list.push({ pos: p.g.position.clone() });
   return list;
 }
 function carBump(dt){
   const me = player.position;
   for (const o of carObstacles()){
-    const d = o.pos.distanceTo(me); if (d > 2.6 || d < 1e-4) continue;
+    const rr = o.r || 2.6, d = o.pos.distanceTo(me); if (d > rr || d < 1e-4) continue;
     // push us out along the ground, away from the other car
     const away = me.clone().sub(o.pos); const up2 = pDir; away.addScaledVector(up2, -away.dot(up2)).normalize();
-    pDir.addScaledVector(away, (2.6 - d) / R).normalize();
+    pDir.addScaledVector(away, (rr - d) / R).normalize();
     knock.copy(away).multiplyScalar(9); knockT = 0.35;
     // a parked car gets shoved too
     if (o.rec){ const od = o.pos.clone().normalize(), f = new THREE.Vector3(0, 0, 1).applyQuaternion(o.rec.car.getWorldQuaternion(new THREE.Quaternion()));
       od.addScaledVector(away, -0.9 / R).normalize(); if (walkable(od)) parkCar(o.rec.car, od, f); }
-    if (o.van){ o.van.ghost = 1.2; }
+    if (o.van){ o.van.ghost = 1.2; o.van.kick = (o.van.kick || V()).addScaledVector(away, -1.1); o.van.spin = (o.van.spin || 0) + (Math.random() - 0.5) * 0.9; o.van.speed *= 0.2; }
     if (performance.now() - lastThump > 450){ lastThump = performance.now(); Sfx.land(); burst(o.pos.clone().lerp(me, 0.5), 0xF4F7FC, 14, 2.2, 0.5); if (navigator.vibrate) navigator.vibrate(40); }
   }
   if (knockT > 0){ knockT -= dt; const n = pDir.clone().addScaledVector(knock, dt / R).normalize(); if (walkable(n)) pDir.copy(n); knock.multiplyScalar(Math.exp(-8 * dt)); }
@@ -993,11 +999,22 @@ function fitSpritesFrame(){
     s.scale.set(f.w * k, f.h * k, 1); }
 }
 
+/* road paint: a dashed centre line on every road, a zebra crossing where it meets each roundabout,
+   and a dashed line round the roundabouts — so the streets read as streets, with places to cross */
+function buildRoadMarks(){
+  const white = basic(0xF4F1E8), dash = new THREE.BoxGeometry(0.14, 0.02, 0.9), zeb = new THREE.BoxGeometry(0.3, 0.02, 1.5);
+  const put = (geo, d, fwdPt) => { const m = new THREE.Mesh(geo, white); placeAt(m, d, 0, 0.035); faceToward(m, fwdPt.clone().multiplyScalar(R)); bake(m); };
+  EDGES.forEach((_, ei) => { const L = edgeLen(ei), a = E0(ei) + 3.4, b = L - E1(ei) - 3.4; if (b <= a) return;
+    for (let s0 = a; s0 < b; s0 += 2.2){ const d = edgePoint(ei, s0, 0); if (heightAt(d) < SEA + 0.2) continue; put(dash, d, edgePoint(ei, s0 + 1, 0)); }
+    for (const s0 of [E0(ei) + 2.1, L - E1(ei) - 2.1]) for (const k of [-0.9, -0.3, 0.3, 0.9]){ const d = edgePoint(ei, s0, k); put(zeb, d, edgePoint(ei, s0 + 1, k)); } });
+  for (let i = 0; i < poiDirs.length; i++){ const RR = RN(i), n = Math.round(Math.PI * 2 * RR / 2.3);
+    for (let k = 0; k < n; k++){ const th = k / n * Math.PI * 2, d = ringDir(i, th, RR); if (roadDist(d) < 1.6) continue; put(dash, d, ringDir(i, th + 0.1, RR)); } }
+}
 function buildRoadside(){
   // street lamps + benches along the roads
   EDGES.forEach(([ia,ib], ei) => {
     const a = poiDirs[ia], b = poiDirs[ib], n = edgeN[ei], L = a.angleTo(b)*R, steps = Math.max(3, Math.floor(L/12));
-    for (let k=1;k<steps;k++){ const tt = k/steps, dir = a.clone().lerp(b, tt).normalize(); if (poiDist(dir)[0] < 7) continue;
+    for (let k=1;k<steps;k++){ const tt = k/steps, dir = a.clone().lerp(b, tt).normalize(); { const [pd0, pi0] = poiDist(dir); if (pd0 < RN(pi0) + 2.5) continue; }
       const side = k % 2 ? 1 : -1, p = dir.clone().addScaledVector(n, side*1.75/R).normalize();
       const l = lamp(); placeAt(l, p); faceToward(l, dir.clone().multiplyScalar(R)); l.rotateY(-Math.PI/2); bake(l); addObstacle(p, 0.25); lampsList.push(p);
     }
@@ -1153,21 +1170,52 @@ function residentLine(c, i){
   ]; return opts[i % opts.length];
 }
 function spawnTraffic(){
-  for (let i=0;i<3;i++){ const v = makeVan(); planet.add(v); cullList.push(v); vehicles.push({ g: v, e: (i*7) % EDGES.length, s: 3, dir: i%2 ? 1 : -1, speed: 0, max: 6 + rnd()*2, honk: 0 }); }
+  for (let i=0;i<3;i++){ const v = makeVan(); planet.add(v); cullList.push(v); vehicles.push({ g: v, e: (i*7) % EDGES.length, s: RING + 1, dir: i%2 ? 1 : -1, speed: 0, max: 6 + rnd()*2, honk: 0 }); }
   /* one resident per client — every client walks the planet, none repeated, none left out */
-  CLIENTS.forEach((c, i) => { const p = person(20 + i, { logo: logoTex(c) }); planet.add(p); cullList.push(p); walkers.push({ g: p, c, e: (i*5+1) % EDGES.length, s: 2 + rnd()*14, dir: i%2 ? 1 : -1, walkT: rnd()*6, line: residentLine(c, i), pause: 0 }); });
+  CLIENTS.forEach((c, i) => { const p = person(20 + i, { logo: logoTex(c) }); planet.add(p); cullList.push(p); walkers.push({ g: p, c, ped: true, e: (i*5+1) % EDGES.length, s: RING + 1 + rnd()*10, dir: i%2 ? 1 : -1, walkT: rnd()*6, line: residentLine(c, i), pause: 0 }); });
 }
+/* ---------- streets: every place sits inside a roundabout ----------
+   Roads run between places but stop at a ring road around each one, so nothing drives through a building:
+   traffic follows the road, swings round the roundabout to its next road, and pedestrians use the outer
+   pavement ring. ringFrame gives each place a tangent basis to measure angles round it. */
+const _ringF = new Map();
+function ringFrame(node){ let f = _ringF.get(node); if (f) return f; const c = poiDirs[node], e1 = V(0, 1, 0).cross(c); if (e1.lengthSq() < 1e-6) e1.set(1, 0, 0).cross(c); e1.normalize();
+  f = { c, e1, e2: V().crossVectors(c, e1).normalize() }; _ringF.set(node, f); return f; }
+function ringTheta(node, d){ const f = ringFrame(node); return Math.atan2(d.dot(f.e2), d.dot(f.e1)); }
+function ringDir(node, th, rad, out = V()){ const f = ringFrame(node), a = rad / R;
+  return out.copy(f.c).multiplyScalar(Math.cos(a)).addScaledVector(f.e1, Math.cos(th) * Math.sin(a)).addScaledVector(f.e2, Math.sin(th) * Math.sin(a)).normalize(); }
+const edgeLen = ei => poiDirs[EDGES[ei][0]].angleTo(poiDirs[EDGES[ei][1]]) * R;
+/* the arc round a place between where a mover arrives (point a) and where it leaves (point b) */
+function ringArc(node, a, b, bulgeR, longWay){
+  const th0 = ringTheta(node, a), rad0 = poiDirs[node].angleTo(a) * R, rad1 = poiDirs[node].angleTo(b) * R; let dth = ringTheta(node, b) - th0;
+  dth = Math.atan2(Math.sin(dth), Math.cos(dth)); if (longWay) dth -= Math.sign(dth || 1) * Math.PI * 2;
+  const bulge = bulgeR ? bulgeR - (rad0 + rad1) / 2 : 0;   // pedestrians swing out to the pavement ring
+  const len = Math.abs(dth) * (rad0 + rad1 + bulge * 1.3) / 2 + Math.abs(rad1 - rad0) + Math.abs(bulge) * 1.4 + 0.01;
+  return { node, th0, dth, rad0, rad1, bulge, len, t: 0 };
+}
+function ringPoint(a, k, out){ return ringDir(a.node, a.th0 + a.dth * k, a.rad0 + (a.rad1 - a.rad0) * k + a.bulge * Math.sin(Math.PI * k), out); }
 function advanceOnGraph(o, step){
-  const [ia,ib] = EDGES[o.e], L = poiDirs[ia].angleTo(poiDirs[ib])*R;
+  if (o.arc){ o.arc.t += step; if (o.arc.t >= o.arc.len) o.arc = null; return; }
+  const L = edgeLen(o.e), lo = E0(o.e) + 0.6, hi = L - E1(o.e) - 0.6, lane = (o.lane || 0) * o.dir;
+  if (hi <= lo){ o.s = L / 2; }
   o.s += step * o.dir;
-  if (o.s > L || o.s < 0){ const node = o.s > L ? ib : ia, opts = ADJ[node].filter(x => x !== o.e), ne = opts.length ? opts[(rnd()*opts.length)|0] : o.e;
-    o.e = ne; const [na] = EDGES[ne]; o.dir = na === node ? 1 : -1; o.s = o.dir > 0 ? 0.01 : poiDirs[EDGES[ne][0]].angleTo(poiDirs[EDGES[ne][1]])*R - 0.01; }
+  if (o.s < lo - 0.01 && o.dir > 0) o.s = lo; if (o.s > hi + 0.01 && o.dir < 0) o.s = hi;
+  if ((o.dir > 0 && o.s >= hi) || (o.dir < 0 && o.s <= lo)){
+    const node = o.dir > 0 ? EDGES[o.e][1] : EDGES[o.e][0], opts = ADJ[node].filter(x => x !== o.e), ne = opts.length ? opts[(rnd()*opts.length)|0] : o.e;
+    const nd = EDGES[ne][0] === node ? 1 : -1, Ln = edgeLen(ne), s1 = nd > 0 ? Math.min(E0(ne) + 0.6, Ln / 2) : Math.max(Ln - E1(ne) - 0.6, Ln / 2);
+    const from = edgePoint(o.e, clamp(o.s, lo, hi), lane, V()), to = edgePoint(ne, s1, (o.lane || 0) * nd, V());
+    o.arc = ringArc(node, from, to, o.ped ? RN(node) + 2.1 : o.ringR, ne === o.e); o.e = ne; o.dir = nd; o.s = s1;
+  }
 }
 const _a = V(), _b = V(), _c = V(), _m = new THREE.Matrix4();
 function poseOnGraph(o, lane, lift){
-  const d = edgePoint(o.e, o.s, lane*o.dir, _a), ahead = edgePoint(o.e, o.s + 0.5*o.dir, lane*o.dir, _b);
+  o.lane = lane; let d, ahead;
+  if (o.arc){ const k = clamp(o.arc.t / o.arc.len, 0, 1); d = ringPoint(o.arc, k, _a); ahead = ringPoint(o.arc, Math.min(1, k + 0.4 / o.arc.len), _b);
+    if (ahead.distanceToSquared(d) < 1e-12) ahead = edgePoint(o.e, o.s + 0.5*o.dir, lane*o.dir, _b); }
+  else { d = edgePoint(o.e, o.s, lane*o.dir, _a); ahead = edgePoint(o.e, o.s + 0.5*o.dir, lane*o.dir, _b); }
   const up = d, fwd = _c.copy(ahead).sub(d); fwd.addScaledVector(up, -fwd.dot(up)).normalize(); const right = V().crossVectors(up, fwd);
   _m.makeBasis(right, up, fwd); o.g.quaternion.setFromRotationMatrix(_m); o.g.position.copy(d).multiplyScalar(R + Math.max(0, heightAt(d)) + lift);
+  if (o.kick && o.kick.lengthSq() > 1e-6){ o.g.position.add(o.kick); o.g.rotateY(o.spin || 0); }
   return d;
 }
 
@@ -1556,6 +1604,7 @@ function updatePlayer(dt, now){
   }
   const shipRide = riding && car && car.userData.ship;
   if (riding && !shipRide) carBump(dt);
+  if (shipRide && knockT > 0){ knockT -= dt; pDir.addScaledVector(knock, dt / R).normalize(); knock.multiplyScalar(Math.exp(-6 * dt)); }
   if (shipRide){ // climb to cruising height (above every roof), higher while Space is held or after a jump-button tap
     // the pilot sets the height: Space/R/▲ climb, Q/C/▼ descend, a jump tap gives a quick boost
     if (jumpReq){ flyTarget = Math.min(FLY_MAX, flyTarget + 5); jumpReq = false; landing = false; }
@@ -1565,6 +1614,12 @@ function updatePlayer(dt, now){
     const cruise = landing ? 0 : flyTarget;
     if (landing) flyY = Math.max(0, flyY - dt * Math.max(2.5, flyY * 1.4)); else flyY += (cruise - flyY) * (1 - Math.exp(-1.8 * dt));
     if (landing && flyY <= 0){ dismount(); }
+    // two shuttles in the air bounce apart instead of passing through each other
+    if (typeof peers !== 'undefined') for (const p of peers.values()){ if (p.rk !== 2 || !p.g.visible || p.id === (typeof passengerOf !== 'undefined' && passengerOf)) continue;
+      const dd = p.g.position.distanceTo(player.position); if (dd > 3.4 || dd < 1e-4) continue;
+      const away = player.position.clone().sub(p.g.position); const vert = away.dot(pDir); away.addScaledVector(pDir, -vert); if (away.lengthSq() < 1e-6) away.copy(pFwd).negate(); away.normalize();
+      knock.copy(away).multiplyScalar(11); knockT = 0.45; flyY += (vert >= 0 ? 1 : -1) * (3.4 - dd) * 0.8; flyTarget = Math.max(FLY_MIN, Math.min(FLY_MAX, flyTarget + (vert >= 0 ? 1.2 : -1.2)));
+      if (performance.now() - lastThump > 450){ lastThump = performance.now(); Sfx.land(); burst(p.g.position.clone().lerp(player.position, 0.5), 0xBFE3F2, 18, 3, 0.6); if (navigator.vibrate) navigator.vibrate(50); } }
     if (proc.legL){ proc.legL.rotation.x = proc.legR.rotation.x = -1.45; proc.knL.rotation.x = proc.knR.rotation.x = 1.4; proc.armL.rotation.x = proc.armR.rotation.x = -0.6; } }
   // the ground under us may have pushed us out of an obstacle while idle
   if (!moved && !shipRide && !passenger) resolve(pDir);
@@ -1680,7 +1735,12 @@ function frame(now){
     const vp = v.g.position, vf = v.g.getWorldDirection(tmp2);
     const ahead = (p, r) => vp.distanceTo(p) < r && tmp.copy(p).sub(vp).dot(vf) > 0;
     v.ghost = Math.max(0, (v.ghost || 0) - dt);
-    const blocked = state !== 'title' && !v.ghost && ahead(player.position, 3.4);
+    // traffic rules: stop for people in front, keep a safe gap to the vehicle ahead (vans and the tour bus)
+    let blocked = state !== 'title' && !v.ghost && !riding && ahead(player.position, 3.6);
+    if (!blocked && !v.ghost) for (const o of vehicles) if (o !== v && ahead(o.g.position, 4.6)){ blocked = true; break; }
+    if (!blocked && typeof bus !== 'undefined' && bus && bus.visible && ahead(bus.position, 6)) blocked = true;
+    if (!blocked && !v.ghost && riding && ahead(player.position, 5)) blocked = true;
+    if (v.kick){ v.kick.multiplyScalar(Math.exp(-3 * dt)); v.spin = (v.spin || 0) * Math.exp(-3 * dt); }
     v.speed = THREE.MathUtils.lerp(v.speed, blocked ? 0 : v.max, 1 - Math.exp(-3*dt));
     if (blocked){ v.honk += dt; v.wait = (v.wait || 0) + dt;  if (v.wait > 4.5){ v.ghost = 2.5; v.wait = 0; } } else { v.honk = Math.min(v.honk, 0); v.wait = 0; }
     advanceOnGraph(v, v.speed*dt); poseOnGraph(v, -0.55, 0);
@@ -1766,7 +1826,7 @@ function introDone(){
   await Promise.race([Promise.all([document.fonts.load('900 60px Orbitron'), document.fonts.load('700 50px IBM Plex Sans Arabic')]), new Promise(r => setTimeout(r, 2500))]);
   await loadModels(p => setP(p*0.55)); setP(0.6); await nextFrame();
   buildSky(); buildTerrain(); setP(0.72); await nextFrame();
-  buildPois(); buildDistrictGates(); buildRoadside(); buildBillboards(); setP(0.8); await nextFrame();
+  buildPois(); buildDistrictGates(); buildRoadside(); buildRoadMarks(); buildBillboards(); setP(0.8); await nextFrame();
   buildNature(); placeVehicles(); buildStars(); buildSkyLife(); if (typeof buildWorlds === 'function') buildWorlds(); spawnTraffic(); setP(0.92); await nextFrame();
   flush(); planet.children.forEach(o => { if (o.isSprite && !signs.includes(o) && !markers.includes(o)) cullList.push(o); if (o.isSprite && o.material.map === glowTex) lampHalos.push(o); }); applyDayNight(); spawn(); updateHud(); setP(1);
   await nextFrame();
