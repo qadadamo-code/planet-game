@@ -202,7 +202,7 @@ const THEMES = {
 
 /* ---------- building the room ---------- */
 function clearRoom(){
-  while (iG.children.length){ const o = iG.children.pop(); o.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material && c.material.map && c.material.map.isCanvasTexture) c.material.map.dispose(); }); }
+  while (iG.children.length){ const o = iG.children.pop(); o.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material && c.material.map && (c.material.map.isCanvasTexture || c.userData.ownMap)) c.material.map.dispose(); }); }
   iBlocks.length = iSeats.length = iSpin.length = iBlink.length = 0;
 }
 function buildRoom(p){

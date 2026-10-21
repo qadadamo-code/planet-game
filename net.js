@@ -66,7 +66,7 @@ function addPeer(id, p){
 function removePeer(id){
   const peer = peers.get(id); if (!peer) return;
   scene.remove(peer.g); const i = langHooks.indexOf(peer.paint); if (i >= 0) langHooks.splice(i, 1);
-  if (peer.car){ peer.car.traverse(o => o.geometry && o.geometry.dispose()); }
+  if (peer.car){ peer.car.traverse(o => o.geometry && !o.userData.shared && o.geometry.dispose()); }
   peers.delete(id); updatePeerCount();
 }
 

@@ -114,7 +114,7 @@ function hangWork(p){
     const z = zs[i], h = 0.95;
     const back = new THREE.Mesh(new THREE.BoxGeometry(0.06, h + 0.14, h + 0.14), new THREE.MeshToonMaterial({ color: 0x12153A, gradientMap: grad })); back.position.set(wallX, 1.62, z); iG.add(back);
     const mat = new THREE.MeshBasicMaterial({ color: 0xffffff }), pic = new THREE.Mesh(new THREE.PlaneGeometry(h, h), mat);
-    pic.rotation.y = Math.PI / 2; pic.position.set(wallX + 0.04, 1.62, z); iG.add(pic);
+    pic.rotation.y = Math.PI / 2; pic.position.set(wallX + 0.04, 1.62, z); pic.userData.keep = true; pic.userData.ownMap = true; iG.add(pic);
     loader.load('img/' + src, tx => { mat.map = tx; mat.needsUpdate = true; const a = tx.image.width / tx.image.height || 1; if (a > 1) pic.scale.set(1, 1 / a, 1); else pic.scale.set(a, 1, 1); });
   });
   const lab = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.32), new THREE.MeshBasicMaterial({ map: frameLabel(lang === 'ar' ? 'شغل Planet معانا' : 'Made with Planet') }));
