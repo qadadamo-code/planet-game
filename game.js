@@ -1679,10 +1679,14 @@ function updatePlayer(dt, now){
     if (!grounded) rig.rotation.x += (-0.14 - rig.rotation.x) * (1 - Math.exp(-10*dt)); else rig.rotation.x += (fwdLean - rig.rotation.x) * (1 - Math.exp(-8*dt));
     if (!riding){ pLandT = Math.max(0, pLandT - dt); const sq = Math.sin(pLandT / 0.2 * Math.PI) * 0.1; rig.scale.set(1 + sq*0.6, 1 - sq, 1 + sq*0.6); }
   } else if (proc.legL){
-    if (!riding && !passenger) astroPose(moving, animSpeed, dt, now, !grounded);
-    const lean = moving ? clamp(-turnRate * 0.09, -0.24, 0.24) : 0, fwdLean = moving ? clamp((animSpeed - 3) * 0.02, 0, 0.12) : 0;
+    // in a seat (pilot, passenger, bus) the messenger sits: legs forward, knees bent — and the seat's own size
+    // is kept, not reset to walking size every frame (that is what made riders stand tall through roofs)
+    const seated = riding || passenger;
+    if (!seated) astroPose(moving, animSpeed, dt, now, !grounded);
+    else { proc.legL.rotation.x = proc.legR.rotation.x = -1.45; proc.knL.rotation.x = proc.knR.rotation.x = 1.4; proc.armL.rotation.x = proc.armR.rotation.x = -0.45; if (proc.body) proc.body.position.y = 0; }
+    const lean = moving && !seated ? clamp(-turnRate * 0.09, -0.24, 0.24) : 0, fwdLean = moving && !seated ? clamp((animSpeed - 3) * 0.02, 0, 0.12) : 0;
     rig.rotation.z += (lean - rig.rotation.z) * (1 - Math.exp(-8*dt)); rig.rotation.x += (fwdLean - rig.rotation.x) * (1 - Math.exp(-8*dt));
-    pLandT = Math.max(0, pLandT - dt); const sq = Math.sin(pLandT / 0.2 * Math.PI) * 0.1; rig.scale.set(1 + sq*0.6, 1 - sq, 1 + sq*0.6);
+    if (!seated){ pLandT = Math.max(0, pLandT - dt); const sq = Math.sin(pLandT / 0.2 * Math.PI) * 0.1; rig.scale.set(1 + sq*0.6, 1 - sq, 1 + sq*0.6); }
   }
   shadow.position.copy(up).multiplyScalar(R + h + floorY + 0.04); shadow.quaternion.setFromUnitVectors(V(0,0,1), up); shadow.scale.setScalar(shipRide ? 2.4 * (1 - Math.min(0.7, flyY / 30)) : 1 - Math.min(0.5, (jy - floorY)*0.15));
   // camera auto-follow while walking (not right after a manual drag)

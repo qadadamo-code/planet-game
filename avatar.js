@@ -139,7 +139,7 @@ function rebuildMe(force){
     peer.av = code; const vis = peer.body.visible;
     const nb = new THREE.Group(), inner = buildHuman(x); const holder = new THREE.Group(); holder.scale.setScalar(1 / 1.15); holder.add(inner.body); nb.add(holder);
     nb.userData = { dyn: true, body: inner.body, armL: inner.armL, armR: inner.armR, legL: inner.legL, legR: inner.legR, k: peer.num || 0 };
-    nb.scale.setScalar(1.15); nb.visible = vis; peer.g.remove(peer.body); peer.g.add(nb); peer.body = nb; }; }
+    nb.scale.setScalar(1.15); nb.visible = vis; if (peer.body.parent) peer.body.parent.remove(peer.body); peer.g.add(nb); peer.body = nb; }; }
 function saveAvx(){ profile.avx = Object.assign({}, AVX); saveAvatar(); rebuildMe(); }
 
 /* ---------- a little live preview of the look while choosing ---------- */

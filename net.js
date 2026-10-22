@@ -65,7 +65,7 @@ function addPeer(id, p){
 }
 function removePeer(id){
   const peer = peers.get(id); if (!peer) return;
-  scene.remove(peer.g); const i = langHooks.indexOf(peer.paint); if (i >= 0) langHooks.splice(i, 1);
+  scene.remove(peer.g); if (peer.body && peer.body.parent && peer.body.parent !== peer.g) peer.body.parent.remove(peer.body); const i = langHooks.indexOf(peer.paint); if (i >= 0) langHooks.splice(i, 1);
   if (peer.car){ peer.car.traverse(o => o.geometry && !o.userData.shared && o.geometry.dispose()); }
   peers.delete(id); updatePeerCount();
 }
@@ -76,7 +76,7 @@ function onPeerState(p){
   peer.last = performance.now(); peer.world = p.w; peer.ps = p.ps || null; peer.sw = p.sw || '';
   if (p.k !== undefined && p.k !== peer.nick){ peer.nick = p.k; peer.paint(); }
   if (p.c !== undefined && p.c !== peer.color){ peer.color = p.c; peer.paint(); peer.ring.material.color.setHex(p.c);
-    const vis = peer.body.visible, nb = person(peer.num, { shirt: peer.color, logo: logoTex(PLANET_C) }); nb.scale.setScalar(1.15); nb.visible = vis; peer.g.remove(peer.body); peer.g.add(nb); peer.body = nb; }
+    const vis = peer.body.visible, nb = person(peer.num, { shirt: peer.color, logo: logoTex(PLANET_C) }); nb.scale.setScalar(1.15); nb.visible = vis; if (peer.body.parent) peer.body.parent.remove(peer.body); peer.g.add(nb); peer.body = nb; }
   if (p.w === 'p' && p.p){ peer.tPos.fromArray(p.p); peer.tQuat.fromArray(p.q); }
   if (p.w === 'o' && p.o){ peer.tPos.copy(OFF).add(P3(p.o[0], p.o[1])); peer.tQuat.setFromEuler(new THREE.Euler(0, p.o[2], 0)); }
   peer.bld = p.w === 'b' ? p.b : null;
@@ -84,7 +84,7 @@ function onPeerState(p){
   if (!peer.g.visible && p.w !== 's'){ peer.pos.copy(peer.tPos); peer.quat.copy(peer.tQuat); }
   const riding = !!p.r; peer.rk = p.r || 0;
   if (riding !== peer.riding){ peer.riding = riding;
-    if (riding){ peer.car = p.r === 2 ? makeShip() : makeCar(peer.color, 0xF4F7FC); peer.g.add(peer.car); peer.body.visible = p.r === 2; peer.tag.position.y = 2.9; }
+    if (riding){ peer.car = p.r === 2 ? makeShip() : makeCar(peer.color, 0xF4F7FC); peer.g.add(peer.car); peer.body.visible = true; peer.tag.position.y = 2.9; }
     else { if (peer.car) peer.g.remove(peer.car); peer.car = null; peer.body.visible = true; peer.tag.position.y = 2.55; } }
   if (peer.car && peer.car.userData.car) setCarStyle(peer.car, !!p.f);
 }
@@ -120,21 +120,26 @@ function netFrame(now){
     if (peer.space) peer.space.visible = false;
     // only show visitors who are in the same place as me
     peer.g.visible = peer.world !== 's' && peer.world === meWorld && (meWorld !== 'b' || peer.bld === inBuilding.id);
+    if (peer.body.parent && peer.body.parent !== peer.g) peer.body.visible = peer.g.visible;   // seated in the bus: shown only when they're in my world
     if (!peer.g.visible) continue;
     const before = peer.pos.clone();
     // a passenger rides in the driver's car: sit them beside the driver
     const drv = peer.ps === netId ? { pos: player.position, quat: player.quaternion, rk: riding && car && car.userData.ship ? 2 : 1 } : peer.ps && peers.get(peer.ps);
-    if (drv){ peer.pos.copy(drv.pos); peer.quat.copy(drv.quat);
-      if (drv.rk === 2) peer.body.position.set(0, 0.66, -0.55); else peer.body.position.set(0.38, 0.2, -0.15); peer.body.scale.setScalar(0.95); }
+    let seated = false;
+    if (drv){ peer.pos.copy(drv.pos); peer.quat.copy(drv.quat); seated = drv.rk === 2 ? 'shipBack' : 'carRight'; }
     else { const k = 1 - Math.exp(-10 * dt); peer.pos.lerp(peer.tPos, k); peer.quat.slerp(peer.tQuat, k);
-      if (peer.bu){ if (typeof bus !== 'undefined' && bus){ peer.pos.copy(bus.position); peer.quat.copy(bus.quaternion); }   // ride with the bus itself, not a lagging copy of their last packet
+      if (peer.bu){ if (typeof bus !== 'undefined' && bus){ peer.pos.copy(bus.position); peer.quat.copy(bus.quaternion);   // ride with the bus itself, not a lagging copy of their last packet
+          if (peer.body.parent !== bus) bus.add(peer.body); }   // seated in the bus's own space: no frame of lag, so a slow phone never shows them trailing outside
         peer.body.position.set(peer.bu.x, 0.72, peer.bu.z); peer.body.scale.setScalar(0.5); }
-      else if (peer.rk === 2){ peer.body.position.set(0, 0.62, 0.15); peer.body.scale.setScalar(0.95); } else { peer.body.position.set(0, 0, 0); peer.body.scale.setScalar(1.15); } }
+      else if (peer.rk === 2) seated = 'shipFront'; else if (peer.rk === 1) seated = 'carLeft';
+      else { peer.body.position.set(0, 0, 0); peer.body.scale.setScalar(1.15); } }
+    if (!peer.bu && peer.body.parent !== peer.g){ if (peer.body.parent) peer.body.parent.remove(peer.body); peer.g.add(peer.body); }   // off the bus: back with them
+    if (seated){ const st = RIDE_SEATS[seated]; peer.body.visible = true; peer.body.position.set(st[0], st[1], st[2]); peer.body.scale.setScalar(st[3]); }
     peer.g.position.copy(peer.pos); peer.g.quaternion.copy(peer.quat);
     peer.tag.visible = peer.id !== passengerOf && camera.position.distanceTo(peer.pos) > 5;   // a name tag right in front of the lens fills the screen
     const moved = before.distanceTo(peer.pos);
     if (moved > 0.002) peer.walkT += moved * 3.2; else peer.walkT *= 0.85;
-    if (peer.bu){ const u = peer.body.userData; animatePerson(peer.body, 0, false, now / 1000); u.legL.rotation.x = u.legR.rotation.x = -1.45; if (u.knL){ u.knL.rotation.x = u.knR.rotation.x = 1.4; } }
+    if (peer.bu || seated) seatPerson(peer.body, now);
     else if (peer.body.visible) animatePerson(peer.body, moved > 0.002 ? peer.walkT : 0, false, now / 1000);
     if (peer.car && moved > 0.002) peer.car.traverse(o => { if (o.userData.wheel) o.rotation.x += moved * 3; });
     if (peer.bubble) peer.bubble.visible = performance.now() < peer.bubbleUntil;
@@ -176,6 +181,13 @@ function netStart(){
 requestAnimationFrame(netFrame);
 netStart();
 
+
+/* where a rider sits: [x, y, z, scale] in the vehicle's own space. The person's feet are at their origin and
+   their hips ~0.62 above it, so y is chosen to put the hips on the seat and the head under the roof or dome. */
+const RIDE_SEATS = { shipFront: [0, 0.58, 0.42, 0.7], shipBack: [0, 0.6, -0.12, 0.66], carLeft: [-0.34, 0.02, -0.12, 0.68], carRight: [0.34, 0.02, -0.12, 0.68] };
+function seatPerson(body, now){ const u = body.userData; animatePerson(body, 0, false, now / 1000);
+  u.legL.rotation.x = u.legR.rotation.x = -1.45; if (u.knL){ u.knL.rotation.x = u.knR.rotation.x = 1.4; }
+  u.armL.rotation.x = u.armR.rotation.x = -0.5; if (u.elL){ u.elL.rotation.x = u.elR.rotation.x = -0.5; } }
 
 /* ---------- riding together: hop into another visitor's car ---------- */
 let passengerOf = null; const _pd = new THREE.Vector3();
